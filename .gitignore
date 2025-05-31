@@ -1,0 +1,33 @@
+# Laravel backend specific ignores
+/backend/.env
+/backend/.env.backup
+/backend/.env.production # Если используется
+/backend/.phpactor.json
+/backend/.phpunit.result.cache
+/backend/.fleet
+/backend/.nova
+/backend/.phpunit.cache
+/backend/auth.json
+/backend/node_modules
+/backend/public/build # Вывод Vite
+/backend/public/hot
+/backend/public/storage # Симлинк на storage/app/public
+/backend/storage/*.key
+/backend/storage/pail
+/backend/vendor # Composer dependencies
+/backend/Homestead.json
+/backend/Homestead.yaml
+/backend/npm-debug.log
+/backend/yarn-error.log
+
+# Vue frontend specific ignores (will be created later)
+/frontend/node_modules
+/frontend/dist # Вывод сборки Vite для фронтенда
+
+# General project ignores
+*.log
+.DS_Store # macOS specific
+Thumbs.db # Windows specific
+/.idea # IDE specific (PhpStorm, IntelliJ) - если вы не хотите, чтобы .idea вообще попадала в репозиторий
+/.vscode # IDE specific (VS Code) - если вы не хотите, чтобы .vscode вообще попадала в репозиторий
+/.zed # IDE specific (Zed)

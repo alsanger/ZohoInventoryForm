@@ -56,7 +56,6 @@ class ZohoAuthService
         $this->clientId = env('ZOHO_CLIENT_ID');
         $this->clientSecret = env('ZOHO_CLIENT_SECRET');
         $this->redirectUri = env('ZOHO_REDIRECT_URI');
-        // Загружаем домен Zoho Accounts. Если переменная не задана, используем дефолт для EU.
         $this->zohoAccountsDomain = env('ZOHO_ACCOUNTS_DOMAIN', 'https://accounts.zoho.eu');
     }
 

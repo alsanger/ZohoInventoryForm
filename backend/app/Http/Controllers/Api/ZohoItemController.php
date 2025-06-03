@@ -30,20 +30,6 @@ class ZohoItemController extends Controller
     {
         $this->zohoItemService = $zohoItemService;
         $this->zohoAuthService = $zohoAuthService;
-
-        // Применяем middleware ко всем методам этого контроллера.
-        // Он проверит наличие действительного токена Zoho. Если токен недействителен,
-        // вернет JSON-ответ 401 Unauthorized.
-        $this->middleware(function (Request $request, $next) {
-            if (!$this->zohoAuthService->getToken()) {
-                Log::warning('ZohoItemController: Access denied. No valid Zoho token found.');
-                return response()->json([
-                    'success' => false,
-                    'message' => 'Требуется авторизация Zoho Inventory. Пожалуйста, авторизуйтесь.'
-                ], 401); // 401 Unauthorized
-            }
-            return $next($request);
-        });
     }
 
     /**

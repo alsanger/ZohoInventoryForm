@@ -1,0 +1,113 @@
+/* src/assets/scss/app.scss */
+
+// Импортируем модуль 'color'
+@use "sass:color";
+
+// 1. Определение переменных цветов Zoho
+$zoho-blue: #2196F3; // Основной синий для кнопок, активных элементов
+$zoho-dark-blue: #263238; // Темно-синий для сайдбара, заголовков
+$zoho-light-gray: #f0f2f5; // Светлый фон
+$zoho-gray: #eceff1;     // Границы, тени
+$zoho-text-color: #424242; // Основной цвет текста
+$zoho-text-muted: #757575; // Цвет для второстепенного текста
+$zoho-success-green: #4CAF50; // Для сообщений успеха
+$zoho-error-red: #f44336;     // Для сообщений ошибок
+$zoho-warning-orange: #FF9800; // Для предупреждений
+
+// 2. Сброс базовых стилей
+body {
+  font-family: 'Inter', sans-serif, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+  margin: 0;
+  padding: 0;
+  background-color: $zoho-light-gray;
+  color: $zoho-text-color;
+  line-height: 1.6;
+}
+
+#app {
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  display: flex;
+  flex-direction: column;
+  min-height: 100vh;
+}
+
+// 3. Базовые классы
+.zoho-card {
+  background-color: white;
+  border-radius: 4px;
+  box-shadow: 0 1px 3px rgba(0,0,0,0.12), 0 1px 2px rgba(0,0,0,0.24);
+  padding: 20px;
+  margin: 20px auto;
+  max-width: 600px;
+  width: 90%;
+}
+
+.zoho-card__title {
+  color: $zoho-dark-blue;
+  font-size: 24px;
+  margin-bottom: 15px;
+}
+
+.zoho-text-muted {
+  color: $zoho-text-muted;
+  font-size: 14px;
+}
+
+.zoho-button {
+  display: inline-block;
+  padding: 10px 20px;
+  border: none;
+  border-radius: 4px;
+  font-size: 16px;
+  cursor: pointer;
+  text-decoration: none;
+  transition: background-color 0.3s ease;
+
+  &--primary {
+    background-color: $zoho-blue;
+    color: white;
+    &:hover {
+      background-color: color.adjust($zoho-blue, $lightness: -10%);
+    }
+  }
+
+  &--secondary {
+    background-color: $zoho-light-gray;
+    color: $zoho-text-color;
+    border: 1px solid $zoho-gray;
+    &:hover {
+      background-color: color.adjust($zoho-light-gray, $lightness: -5%);
+    }
+  }
+}
+
+// Классы для сообщений
+.zoho-alert {
+  padding: 15px;
+  margin-bottom: 20px;
+  border-radius: 4px;
+  font-size: 15px;
+  font-weight: 500;
+  line-height: 1.4;
+  display: flex;
+  align-items: center;
+
+  &--success {
+    background-color: color.adjust($zoho-success-green, $lightness: 40%);
+    color: color.adjust($zoho-success-green, $lightness: -20%);
+    border: 1px solid $zoho-success-green;
+  }
+  &--error {
+    background-color: color.adjust($zoho-error-red, $lightness: 40%);
+    color: color.adjust($zoho-error-red, $lightness: -20%);
+    border: 1px solid $zoho-error-red;
+  }
+  &--warning {
+    background-color: color.adjust($zoho-warning-orange, $lightness: 40%);
+    color: color.adjust($zoho-warning-orange, $lightness: -20%);
+    border: 1px solid $zoho-warning-orange;
+  }
+}
+
+// @import '~bootstrap/scss/bootstrap'; // раскомментировать после установки bootstrap и настройки

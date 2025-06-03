@@ -37,7 +37,7 @@ Route::get('/zoho/auth', [ZohoAuthController::class, 'getZohoAuthUrl'])->name('a
 Route::get('/zoho/auth-status', [UtilController::class, 'checkZohoAuthStatus']);
 
 // Защищенные маршруты (требуют аутентификации Sanctum)
-Route::middleware(['auth:sanctum'])->group(function () {
+Route::middleware(['auth:sanctum', 'zoho.auth'])->group(function () {
     Route::get('/zoho/contacts', [ZohoContactController::class, 'index']);
     Route::post('/zoho/contacts', [ZohoContactController::class, 'store']);
     Route::get('/zoho/items', [ZohoItemController::class, 'index']);

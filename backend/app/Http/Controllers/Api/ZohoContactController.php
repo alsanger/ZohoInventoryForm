@@ -3,7 +3,7 @@
 namespace App\Http\Controllers\Api;
 
 use App\Http\Controllers\Controller;
-use App\Http\Requests\Api\CreateZohoContactRequest; // Будет создан на следующем шаге
+use App\Http\Requests\Api\CreateZohoContactRequest;
 use App\Services\ZohoAuthService;
 use App\Services\ZohoContactService;
 use Illuminate\Http\JsonResponse;

@@ -76,9 +76,10 @@ abstract class ZohoBaseApiService
             $headers = [
                 'Authorization' => 'Zoho-oauthtoken ' . $token,
                 'Content-Type' => 'application/json',
-                // Добавляем обязательный заголовок с ID организации Zoho Inventory.
-                'X-com-zoho-inventory-organizationid' => $this->organizationId,
             ];
+
+            // Добавляем обязательный параметр с ID организации Zoho Inventory.
+            $query['organization_id'] = $this->organizationId;
 
             // Отправляем GET-запрос.
             $response = Http::withHeaders($headers)
@@ -91,7 +92,7 @@ abstract class ZohoBaseApiService
                     'response' => $response->body(),
                     'query' => $query,
                     'endpoint' => $endpoint,
-                    'headers' => $headers // Логируем заголовки для отладки
+                    'headers' => $headers
                 ]);
                 return null;
             }
@@ -113,6 +114,52 @@ abstract class ZohoBaseApiService
      * @param array $data Данные для отправки в теле запроса (будут преобразованы в JSON).
      * @return array|null Результат запроса (JSON-ответ в виде массива) или null в случае ошибки.
      */
+    /*protected function zohoApiPost(string $endpoint, array $data): ?array
+    {
+        // Получаем актуальный access_token через ZohoAuthService.
+        $token = $this->zohoAuthService->getToken();
+
+        // Если токен не получен, логируем ошибку и возвращаем null.
+        if (!$token) {
+            Log::error("Failed to get Zoho access token for API POST request to {$endpoint}.");
+            return null;
+        }
+
+        try {
+            // Формируем общие заголовки для всех запросов Zoho Inventory.
+            $headers = [
+                'Authorization' => 'Zoho-oauthtoken ' . $token,
+                'Content-Type' => 'application/json',
+            ];
+
+            // Добавляем обязательный параметр с ID организации Zoho Inventory.
+            $query['organization_id'] = $this->organizationId;
+
+            // Отправляем POST-запрос с JSON-телом.
+            $response = Http::withHeaders($headers)
+                ->post($this->zohoApiDomain . $endpoint, $data);
+
+            // Если запрос завершился ошибкой, логируем детали.
+            if ($response->failed()) {
+                Log::error("Zoho API POST request failed for {$endpoint}.", [
+                    'status' => $response->status(),
+                    'response' => $response->body(),
+                    'data' => $data,
+                    'endpoint' => $endpoint,
+                    'headers' => $headers // Логируем заголовки для отладки
+                ]);
+                return null;
+            }
+
+            // Возвращаем JSON-ответ в виде массива.
+            return $response->json();
+        } catch (\Exception $e) {
+            // Логируем любые исключения.
+            Log::error("Exception during Zoho API POST request to {$endpoint}.", ['error' => $e->getMessage(), 'endpoint' => $endpoint]);
+            return null;
+        }
+    }*/
+
     protected function zohoApiPost(string $endpoint, array $data): ?array
     {
         // Получаем актуальный access_token через ZohoAuthService.
@@ -129,13 +176,23 @@ abstract class ZohoBaseApiService
             $headers = [
                 'Authorization' => 'Zoho-oauthtoken ' . $token,
                 'Content-Type' => 'application/json',
-                // Добавляем обязательный заголовок с ID организации Zoho Inventory.
-                'X-com-zoho-inventory-organizationid' => $this->organizationId,
+                // X-com-zoho-inventory-organizationid НЕ НУЖЕН ЗДЕСЬ,
+                // так как organization_id будет в параметрах URL.
+            ];
+
+            // Формируем параметры запроса для URL (только organization_id)
+            $queryParams = [
+                'organization_id' => $this->organizationId,
             ];
 
             // Отправляем POST-запрос с JSON-телом.
+            // Http::post позволяет передать параметры запроса вторым аргументом, а тело - третьим,
+            // ИЛИ можно собрать URL вручную.
+            // Используем ручную сборку URL для ясности и точного соответствия curl.
+            $url = $this->zohoApiDomain . $endpoint . '?' . http_build_query($queryParams);
+
             $response = Http::withHeaders($headers)
-                ->post($this->zohoApiDomain . $endpoint, $data);
+                ->post($url, $data); // $data - это тело JSON, $url содержит параметры запроса
 
             // Если запрос завершился ошибкой, логируем детали.
             if ($response->failed()) {
@@ -144,7 +201,8 @@ abstract class ZohoBaseApiService
                     'response' => $response->body(),
                     'data' => $data,
                     'endpoint' => $endpoint,
-                    'headers' => $headers // Логируем заголовки для отладки
+                    'headers' => $headers,
+                    'url_sent' => $url // Добавляем логирование фактического URL
                 ]);
                 return null;
             }

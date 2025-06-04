@@ -25,7 +25,7 @@ class ZohoContactService extends ZohoBaseApiService
             'per_page' => 200,      // Количество записей на страницу (можно увеличить при необходимости)
             'page' => 1,            // Номер страницы
             'sort_column' => 'contact_name', // Сортировка по имени контакта
-            'sort_order' => 'asc',  // Порядок сортировки: по возрастанию
+            'sort_order' => 'A',  // Порядок сортировки: по возрастанию
         ], $filters);
 
         // Добавляем фильтр по типу контакта, если он указан.
@@ -34,7 +34,7 @@ class ZohoContactService extends ZohoBaseApiService
         }
 
         // Выполняем GET-запрос к API контактов.
-        $response = $this->zohoApiGet('/inventory/api/v1/contacts', $query);
+        $response = $this->zohoApiGet('/inventory/v1/contacts', $query);
 
         // Проверяем, что ответ получен и содержит список контактов.
         if ($response && isset($response['contacts'])) {
@@ -67,7 +67,7 @@ class ZohoContactService extends ZohoBaseApiService
         $requestData = ['contact' => $contactData];
 
         // Выполняем POST-запрос к API контактов.
-        $response = $this->zohoApiPost('/inventory/api/v1/contacts', $requestData);
+        $response = $this->zohoApiPost('/inventory/v1/contacts', $requestData);
 
         // Проверяем, что контакт успешно создан и его данные возвращены.
         if ($response && isset($response['contact'])) {

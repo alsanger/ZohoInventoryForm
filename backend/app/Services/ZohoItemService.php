@@ -25,11 +25,11 @@ class ZohoItemService extends ZohoBaseApiService
             'per_page' => 50, // Количество товаров на страницу по умолчанию
             'page' => 1,      // Номер страницы по умолчанию
             'sort_column' => 'name', // Сортировка по имени товара
-            'sort_order' => 'asc',   // Порядок сортировки: по возрастанию
+            'sort_order' => 'A',   // Порядок сортировки: по возрастанию
         ], $filters);
 
         // Выполняем GET-запрос к API товаров.
-        $response = $this->zohoApiGet('/inventory/api/v1/items', $query);
+        $response = $this->zohoApiGet('/inventory/v1/items', $query);
 
         // Проверяем, что ответ получен и содержит список товаров.
         if ($response && isset($response['items'])) {

@@ -42,6 +42,7 @@ class ZohoContactController extends Controller
      */
     public function index(Request $request): JsonResponse
     {
+        Log::info("Попали в ZohoContactController@index");
         $search = $request->query('search');
         $filters = [];
 

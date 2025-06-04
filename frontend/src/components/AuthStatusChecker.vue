@@ -3,6 +3,8 @@
 </template>
 
 <script>
+import apiClient from "@/plugins/axios.js";
+
 export default {
   name: 'AuthStatusChecker',
   data() {
@@ -42,7 +44,8 @@ export default {
     // 2. Если параметров в URL нет, проверяем статус авторизации через API
     try {
       // Используем axios, который мы настроили в main.js
-      const response = await this.$axios.get('/api/zoho/auth-status');
+      //const response = await this.$axios.get('/api/zoho/auth-status');
+      const response = await apiClient.get('/zoho/auth');
 
       if (response.data.authenticated) {
         this.message = 'Вы уже авторизованы в Zoho Inventory.';

@@ -2,7 +2,7 @@
 
 namespace App\Http\Controllers;
 
-use App\Http\Requests\ZohoAuthCallbackRequest; // Мы создадим этот Request позже
+use App\Http\Requests\ZohoAuthCallbackRequest;
 use App\Services\ZohoAuthService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\RedirectResponse;

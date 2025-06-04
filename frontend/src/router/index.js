@@ -1,5 +1,6 @@
 import { createRouter, createWebHistory } from 'vue-router';
-import axios from 'axios'; // <-- Добавляем импорт axios
+// import axios from 'axios'; // <-- Добавляем импорт axios
+import apiClient from '@/plugins/axios'
 
 // Импортируем компоненты, которые будем использовать в маршрутах.
 import AuthRequired from '../components/AuthRequired.vue'; // Страница для неавторизованных
@@ -43,7 +44,8 @@ router.beforeEach(async (to, from, next) => {
   if (to.meta.requiresAuth) {
     try {
       // Отправляем запрос на бэкенд для проверки статуса авторизации Zoho
-      const response = await axios.get('/api/zoho/auth-status');
+      //const response = await axios.get('/api/zoho/auth-status');
+      const response = await apiClient.get('/zoho/auth-status');
 
       if (response.data.authenticated) {
         // Если пользователь авторизован, разрешаем переход

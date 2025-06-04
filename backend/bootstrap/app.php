@@ -15,6 +15,11 @@ return Application::configure(basePath: dirname(__DIR__))
         // *** ЭТА СТРОКА АКТИВИРУЕТ SANCTUM ДЛЯ SPA-АУТЕНТИФИКАЦИИ ***
         $middleware->statefulApi(); // Это включает EnsureFrontendRequestsAreStateful middleware
         // и автоматически настраивает CORS на основе SANCTUM_STATEFUL_DOMAINS
+
+        // Регистрируем алиас для middleware
+        $middleware->alias([
+            'zoho.auth' => \App\Http\Middleware\ZohoAuthMiddleware::class,
+        ]);
     })
     ->withExceptions(function (Exceptions $exceptions) {
         //

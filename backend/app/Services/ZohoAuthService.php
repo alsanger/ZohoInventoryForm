@@ -2,10 +2,10 @@
 
 namespace App\Services;
 
-use App\Models\ZohoToken; // Импортируем модель ZohoToken
-use Carbon\Carbon;          // Импортируем Carbon для работы с датами
-use Illuminate\Support\Facades\Http; // Для выполнения HTTP-запросов
-use Illuminate\Support\Facades\Log;  // Для логирования
+use App\Models\ZohoToken;
+use Carbon\Carbon;
+use Illuminate\Support\Facades\Http;
+use Illuminate\Support\Facades\Log;
 
 /**
  * Сервис для управления аутентификацией Zoho OAuth 2.0.
@@ -209,9 +209,8 @@ class ZohoAuthService
 
             // Обновляем текущую запись токена в базе данных новым access_token и временем истечения.
             $token->access_token = $data['access_token'];
-            // Устанавливаем время истечения с небольшим буфером (30 секунд),
-            // чтобы обновить токен чуть раньше, чем он фактически истечет.
-            $token->expires_at = Carbon::now()->addSeconds($data['expires_in'] - 30);
+            // Устанавливаем время истечения токена на текущее время (в секундах).
+            $token->expires_at = Carbon::now()->addSeconds($data['expires_in']);
             $token->save(); // Сохраняем изменения.
 
             return $token->access_token;

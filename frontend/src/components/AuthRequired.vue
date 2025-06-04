@@ -15,6 +15,8 @@
 </template>
 
 <script>
+import apiClient from "@/plugins/axios.js";
+
 export default {
   name: 'AuthRequired',
   data() {
@@ -47,7 +49,8 @@ export default {
     async redirectToZohoAuth() {
       try {
         // Вызываем эндпоинт бэкенда, который вернет URL для Zoho Auth
-        const response = await this.$axios.get('/api/zoho/auth');
+        //const response = await this.$axios.get('/api/zoho/auth');
+        const response = await apiClient.get('/zoho/auth');
         if (response.data && response.data.auth_url) {
           window.location.href = response.data.auth_url; // Перенаправляем пользователя на Zoho
         } else {

@@ -337,28 +337,35 @@ export default {
     hasAnyValidationErrors() {
       // 1. Базовая валидация: клиент выбран, все основные позиции заказа заполнены корректно
       if (!this.form.customer_id) return true;
-      if (this.form.line_items.length === 0) return true;
-      if (this.form.line_items.some(item => !item.item_id || item.quantity < 0 || item.rate < 0)) { // !!! ИЗМЕНЕНИЕ: quantity может быть 0
-        return true;
-      }
-      // Если есть пустые строки, их нельзя отправлять (добавлять)
-      if (this.form.line_items.some(item => item.item_id && item.quantity === 0 && item.rate === 0)) { // Это для случая когда item выбран, но quantity=0 и rate=0.
-        // Либо quantity > 0, либо item_id пустой.
-        return true;
-      }
-      // Убедимся, что для выбранных товаров quantity > 0
-      if (this.form.line_items.some(item => item.item_id && item.quantity <= 0)) {
-        return true;
-      }
 
+      // Если после добавления пустой строки, в массиве line_items есть только эта пустая строка
+      // или все строки невалидны.
+      // Валидация для line_items должна проверять, что есть хотя бы ОДНА ВАЛИДНАЯ позиция
+      const validLineItems = this.form.line_items.filter(item =>
+        item.item_id && item.quantity > 0 && item.rate >= 0
+      );
+      if (validLineItems.length === 0) return true;
+
+      // Дополнительная проверка на некорректные значения в *любой* строке (даже если она не выбрана)
+      if (this.form.line_items.some(item =>
+        (item.item_id && (item.quantity <= 0 || item.rate < 0)) || // Если выбран товар, quantity и rate должны быть валидны
+        (!item.item_id && (item.quantity > 0 || item.rate > 0)) // Если товар НЕ выбран, quantity и rate должны быть 0
+      )) {
+        return true;
+      }
 
       // 2. Валидация, связанная с дефицитом и PO
       if (this.hasDeficitInOrder) { // Если в заказе есть дефицит
         if (this.form.create_purchase_orders_for_deficit) { // И пользователь выбрал создать PO
-          if (!this.isDeficitFullyCoveredByPO) return true;
-          if (this.hasInvalidPOQuantityToOrder) return true;
-          if (this.hasUnselectedVendorInPO) return true;
-          if (this.hasInvalidPORate) return true; // !!! ИЗМЕНЕНИЕ: Добавлена проверка ставки закупки
+          // Проверка на то, что deficitItems реально сформировались корректно (vendor_id, quantity_to_order, purchase_rate)
+          const invalidDeficitItems = this.deficitItems.some(item =>
+            !item.selected_vendor_id ||
+            (item.quantity_to_order === undefined || item.quantity_to_order <= 0) || // Проверка, что quantity_to_order > 0
+            (item.purchase_rate === undefined || item.purchase_rate < 0) ||
+            (item.quantity_to_order < item.deficit_needed) // Убеждаемся, что заказанное кол-во покрывает дефицит
+          );
+          if (invalidDeficitItems) return true;
+
         } else {
           // Если дефицит есть, но PO не создается, то кнопка заблокирована
           return true;
@@ -529,20 +536,35 @@ export default {
 
       if (this.hasAnyValidationErrors) {
         if (!this.form.customer_id) {
-          this.submitError = 'Please select a client.';
-        } else if (this.form.line_items.some(item => !item.item_id || item.quantity <= 0 || item.rate < 0)) {
-          this.submitError = 'Please ensure all selected line items have a quantity greater than 0 and a non-negative rate.';
+          this.submitError = 'Пожалуйста, выберите клиента.';
+        } else if (this.form.line_items.filter(item => item.item_id).length === 0) { // Проверка, что хотя бы один товар выбран
+          this.submitError = 'Заказ на продажу должен содержать хотя бы одну позицию товара.';
+        } else if (this.form.line_items.some(item => item.item_id && (item.quantity <= 0 || item.rate < 0))) {
+          this.submitError = 'Для выбранных товаров количество должно быть больше нуля, а цена — неотрицательной.';
         } else if (this.hasDeficitInOrder) {
           if (!this.form.create_purchase_orders_for_deficit) {
-            this.submitError = 'There are deficit items. Please either adjust the quantity or check "Create purchase orders for deficit items" to cover the deficit.';
-          } else if (this.hasUnselectedVendorInPO) {
-            this.submitError = 'Please select a vendor for all deficit items in the Purchase Orders section.';
-          } else if (this.hasInvalidPOQuantityToOrder) {
-            this.submitError = 'The quantity to order for deficit items cannot be less than the actual deficit, and must be greater than 0. Please adjust.';
-          } else if (this.hasInvalidPORate) { // !!! ИЗМЕНЕНИЕ: Добавлена ошибка для ставки закупки
-            this.submitError = 'Purchase rate for deficit items cannot be undefined or negative. Please specify a valid rate.';
-          } else if (!this.isDeficitFullyCoveredByPO) {
-            this.submitError = 'The ordered quantity still exceeds available stock even with the proposed purchase orders. Please adjust quantities or order more via PO.';
+            this.submitError = 'Есть дефицитные товары. Пожалуйста, либо скорректируйте количество, либо выберите "Создать заказы на закупку для дефицитных товаров".';
+          } else {
+            // Дополнительная проверка на неполноценные PO-данные
+            const invalidPoItem = this.deficitItems.find(item =>
+              !item.selected_vendor_id ||
+              (item.quantity_to_order === undefined || item.quantity_to_order <= 0) ||
+              (item.purchase_rate === undefined || item.purchase_rate < 0) ||
+              (item.quantity_to_order < item.deficit_needed)
+            );
+            if (invalidPoItem) {
+              if (!invalidPoItem.selected_vendor_id) {
+                this.submitError = `Пожалуйста, выберите поставщика для товара "${invalidPoItem.name}".`;
+              } else if (invalidPoItem.quantity_to_order === undefined || invalidPoItem.quantity_to_order <= 0) {
+                this.submitError = `Количество для заказа товара "${invalidPoItem.name}" должно быть больше нуля.`;
+              } else if (invalidPoItem.quantity_to_order < invalidPoItem.deficit_needed) {
+                this.submitError = `Количество для заказа товара "${invalidPoItem.name}" (${invalidPoItem.quantity_to_order}) не покрывает дефицит (${invalidPoItem.deficit_needed}). Пожалуйста, увеличьте его.`;
+              } else if (invalidPoItem.purchase_rate === undefined || invalidPoItem.purchase_rate < 0) {
+                this.submitError = `Закупочная цена для товара "${invalidPoItem.name}" должна быть неотрицательной.`;
+              }
+            } else {
+              this.submitError = 'Произошла непредвиденная ошибка валидации PO. Проверьте консоль.';
+            }
           }
         }
         this.submitting = false;
@@ -562,7 +584,7 @@ export default {
             zohoItem.discount_amount = parseFloat(discountAmount.toFixed(2));
           }
           return zohoItem;
-        }).filter(item => item.item_id && item.quantity > 0); // !!! ИЗМЕНЕНИЕ: Фильтруем пустые/нулевые строки перед отправкой
+        }).filter(item => item.item_id && item.quantity > 0 && item.rate >= 0);
 
         const payload = {
           customer_id: this.form.customer_id,
@@ -571,21 +593,41 @@ export default {
         };
 
         if (this.hasDeficitInOrder && this.form.create_purchase_orders_for_deficit) {
-          payload.create_purchase_orders_for_deficit = true;
-          payload.purchase_orders_data = this.deficitItems.map(item => ({
-            item_id: item.item_id,
-            quantity_needed: item.quantity_to_order,
-            vendor_id: item.selected_vendor_id,
-            purchase_rate: item.purchase_rate
-          }));
-        } else {
-          payload.create_purchase_orders_for_deficit = false;
+          const groupedPurchaseOrders = {};
+
+          this.deficitItems.forEach(item => {
+            // Если у каждого дефицитного товара есть выбранный поставщик и корректные данные для PO
+            if (!item.selected_vendor_id || item.quantity_to_order <= 0 || item.purchase_rate < 0) {
+              console.warn(`Item ${item.item_name} has deficit but missing valid PO details. Skipping for PO generation.`);
+              return; // Пропускаем элемент, если он неполноценен для PO
+            }
+            // Создаем структуру PO для данного вендора, если ее еще нет
+            if (!groupedPurchaseOrders[item.selected_vendor_id]) {
+              groupedPurchaseOrders[item.selected_vendor_id] = {
+                vendor_id: item.selected_vendor_id,
+                date: new Date().toISOString().split('T')[0], // Текущая дата для PO
+                delivery_date: new Date(Date.now() + 14 * 24 * 60 * 60 * 1000).toISOString().split('T')[0], // Пример: +14 дней на доставку
+                line_items: [],
+              };
+            }
+            // Добавляем позицию товара в PO для этого вендора
+            groupedPurchaseOrders[item.selected_vendor_id].line_items.push({
+              item_id: item.item_id,
+              quantity: parseFloat(item.quantity_to_order), // Количество, которое нужно заказать (используем 'quantity')
+              rate: parseFloat(item.purchase_rate),         // Закупочная цена (используем 'rate')
+            });
+          });
+
+          // Добавляем сгруппированные PO в payload, если они сформировались
+          if (Object.keys(groupedPurchaseOrders).length > 0) {
+            payload.purchase_orders_data = Object.values(groupedPurchaseOrders);
+          }
         }
 
-        const response = await apiClient.post('/zoho/sales-orders', payload);
+        const response = await apiClient.post('/zoho/sales-purchase-orders', payload); // <-- ИЗМЕНЕННЫЙ URL
 
-        this.successMessage = response.data.message || 'Sales order successfully created!';
-        console.log('Order created:', response.data);
+        this.successMessage = response.data.message || 'Комбинированный заказ успешно создан!';
+        console.log('Order creation result:', response.data);
 
         this.form = {
           customer_id: '',

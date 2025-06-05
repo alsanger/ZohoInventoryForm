@@ -47,7 +47,6 @@ class ZohoSalesOrderService extends ZohoBaseApiService
             if (isset($item['description'])) {
                 $zohoLineItem['description'] = (string) $item['description'];
             }
-            // ... другие поля, которые вы хотите включить ...
 
             Log::info('ZohoSalesOrderService: Анализ line_item', [
                 'original_item' => $item,
@@ -56,8 +55,6 @@ class ZohoSalesOrderService extends ZohoBaseApiService
 
             return $zohoLineItem;
         }, $salesOrderData['line_items'] ?? []);
-        // --- КОНЕЦ НОВОГО КОДА ДЛЯ ЛОГИРОВАНИЯ И ОБРАБОТКИ ---
-
 
         $response = $this->zohoApiPost('/inventory/v1/salesorders', $salesOrderData);
 

@@ -1,29 +1,27 @@
 <?php
 
+use App\Http\Controllers\Api\SalesPurchaseOrderController;
 use App\Http\Controllers\Api\ZohoVendorController;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Route;
 use App\Http\Controllers\Api\UtilController;
 use App\Http\Controllers\ZohoAuthController;
-
 use App\Http\Controllers\Api\ZohoContactController;
 use App\Http\Controllers\Api\ZohoItemController;
-use App\Http\Controllers\Api\ZohoSalesOrderController;
-use App\Http\Controllers\Api\ZohoPurchaseOrderController;
 
-// Эти маршруты не требуют аутентификации
-// Маршрут для получения URL авторизации Zoho
-Route::get('/zoho/auth', [ZohoAuthController::class, 'getZohoAuthUrl'])->name('api.zoho.auth');
-// Маршрут для проверки статуса авторизации Zoho
-Route::get('/zoho/auth-status', [UtilController::class, 'checkZohoAuthStatus']);
+// Группируем все Zoho маршруты с префиксом
+Route::prefix('zoho')->name('api.zoho.')->group(function () {
 
-// Защищенные маршруты (требуют аутентификации Zoho)
-Route::middleware(['zoho.auth'])->group(function () {
-    Route::get('/zoho/contacts', [ZohoContactController::class, 'index']);
-    Route::post('/zoho/contacts', [ZohoContactController::class, 'store']);
-    Route::get('/zoho/items', [ZohoItemController::class, 'index']);
-    Route::post('/zoho/sales-orders', [ZohoSalesOrderController::class, 'store']);
-    Route::post('/zoho/purchase-orders', [ZohoPurchaseOrderController::class, 'store']);
-    Route::get('/zoho/vendors', [ZohoVendorController::class, 'index']);
+    // Публичные маршруты
+    Route::get('/auth', [ZohoAuthController::class, 'getZohoAuthUrl'])->name('auth');
+    Route::get('/auth-status', [UtilController::class, 'checkZohoAuthStatus'])->name('auth-status');
+
+    // Защищенные маршруты
+    Route::middleware(['zoho.auth'])->group(function () {
+        Route::get('/contacts', [ZohoContactController::class, 'index'])->name('contacts.index');
+        Route::post('/contacts', [ZohoContactController::class, 'store'])->name('contacts.store');
+        Route::get('/items', [ZohoItemController::class, 'index'])->name('items.index');
+        Route::get('/vendors', [ZohoVendorController::class, 'index'])->name('vendors.index');
+        Route::post('/sales-purchase-orders', [SalesPurchaseOrderController::class, 'store'])->name('orders.store');
+    });
 });
-

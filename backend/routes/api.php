@@ -1,5 +1,6 @@
 <?php
 
+use App\Http\Controllers\Api\ZohoVendorController;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Route;
 use App\Http\Controllers\Api\UtilController;
@@ -23,5 +24,6 @@ Route::middleware(['zoho.auth'])->group(function () {
     Route::get('/zoho/items', [ZohoItemController::class, 'index']);
     Route::post('/zoho/sales-orders', [ZohoSalesOrderController::class, 'store']);
     Route::post('/zoho/purchase-orders', [ZohoPurchaseOrderController::class, 'store']);
+    Route::get('/zoho/vendors', [ZohoVendorController::class, 'index']);
 });
 

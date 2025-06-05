@@ -21,7 +21,6 @@ class ZohoSalesOrderService extends ZohoBaseApiService
      */
     public function createSalesOrder(array $salesOrderData): ?array
     {
-        // --- НОВЫЙ КОД ДЛЯ ЛОГИРОВАНИЯ И ОБРАБОТКИ ---
         Log::info('ZohoSalesOrderService: Входящие данные для создания Sales Order', ['salesOrderData' => $salesOrderData]);
 
         // Обработка line_items перед отправкой в Zoho

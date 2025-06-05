@@ -122,8 +122,6 @@ class ZohoSalesOrderController extends Controller
                     if (!isset($purchaseOrdersToCreate[$defaultVendorId])) {
                         $purchaseOrdersToCreate[$defaultVendorId] = [
                             'vendor_id' => $defaultVendorId,
-                            // Генерируем уникальный номер заказа на закупку. Zoho может и сам его генерировать.
-                            'purchaseorder_number' => 'PO-' . time() . '-' . uniqid(),
                             'date' => Carbon::now()->format('Y-m-d'), // Текущая дата для PO
                             'delivery_date' => Carbon::now()->addWeeks(2)->format('Y-m-d'), // Ориентировочная дата доставки (через 2 недели)
                         ];

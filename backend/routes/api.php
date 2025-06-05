@@ -8,6 +8,7 @@ use App\Http\Controllers\ZohoAuthController;
 use App\Http\Controllers\Api\ZohoContactController;
 use App\Http\Controllers\Api\ZohoItemController;
 use App\Http\Controllers\Api\ZohoSalesOrderController;
+use App\Http\Controllers\Api\ZohoPurchaseOrderController;
 
 // Эти маршруты не требуют аутентификации
 // Маршрут для получения URL авторизации Zoho
@@ -21,5 +22,6 @@ Route::middleware(['zoho.auth'])->group(function () {
     Route::post('/zoho/contacts', [ZohoContactController::class, 'store']);
     Route::get('/zoho/items', [ZohoItemController::class, 'index']);
     Route::post('/zoho/sales-orders', [ZohoSalesOrderController::class, 'store']);
+    Route::post('/zoho/purchase-orders', [ZohoPurchaseOrderController::class, 'store']);
 });
 

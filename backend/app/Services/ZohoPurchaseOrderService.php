@@ -22,10 +22,10 @@ class ZohoPurchaseOrderService extends ZohoBaseApiService
     public function createPurchaseOrder(array $purchaseOrderData): ?array
     {
         // Zoho API требует, чтобы данные заказа на закупку были обернуты в ключ 'purchaseorder'.
-        $requestData = ['purchaseorder' => $purchaseOrderData];
+        $requestData = $purchaseOrderData;
 
         // Выполняем POST-запрос к API заказов на закупку.
-        $response = $this->zohoApiPost('/inventory/api/v1/purchaseorders', $requestData);
+        $response = $this->zohoApiPost('/inventory/v1/purchaseorders', $requestData);
 
         // Проверяем, что заказ успешно создан и его данные возвращены.
         if ($response && isset($response['purchaseorder'])) {

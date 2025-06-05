@@ -52,4 +52,38 @@ class ZohoItemService extends ZohoBaseApiService
         // В случае ошибки возвращаем пустые данные.
         return ['items' => [], 'page_context' => []];
     }
+
+    /**
+     * Получает детальную информацию о конкретном товаре по его ID.
+     * Zoho Inventory API: GET /items/{item_id}
+     *
+     * @param string $itemId Уникальный ID товара.
+     * @return array|null Детали товара или null в случае ошибки.
+     */
+    public function getItemDetails(string $itemId): ?array
+    {
+        if (empty($itemId)) {
+            Log::error('Attempt to get Zoho item details without an item ID.');
+            return null;
+        }
+
+        // Формируем endpoint с ID товара.
+        // zohoApiGet автоматически добавит organization_id как query-параметр.
+        $endpoint = '/inventory/v1/items/' . $itemId;
+
+        $response = $this->zohoApiGet($endpoint);
+
+        // Проверяем, что ответ получен и содержит данные товара.
+        if ($response && isset($response['item'])) {
+            // Zoho Inventory API может возвращать 'available_for_sale' как строку,
+            // преобразуем её в целое число для удобства работы, если оно есть.
+            $item = $response['item'];
+            $item['available_for_sale'] = (int) ($item['available_for_sale'] ?? 0);
+            Log::info('Successfully fetched Zoho item details.', ['item_id' => $itemId, 'available_for_sale' => $item['available_for_sale']]);
+            return $item;
+        }
+
+        Log::error('Failed to fetch Zoho item details.', ['item_id' => $itemId, 'response' => $response]);
+        return null;
+    }
 }

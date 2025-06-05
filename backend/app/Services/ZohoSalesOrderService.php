@@ -21,20 +21,53 @@ class ZohoSalesOrderService extends ZohoBaseApiService
      */
     public function createSalesOrder(array $salesOrderData): ?array
     {
-        // Zoho API требует, чтобы данные заказа на продажу были обернуты в ключ 'salesorder'.
-        $requestData = ['salesorder' => $salesOrderData];
+        // --- НОВЫЙ КОД ДЛЯ ЛОГИРОВАНИЯ И ОБРАБОТКИ ---
+        Log::info('ZohoSalesOrderService: Входящие данные для создания Sales Order', ['salesOrderData' => $salesOrderData]);
 
-        // Выполняем POST-запрос к API заказов на продажу.
-        $response = $this->zohoApiPost('/inventory/api/v1/salesorders', $requestData);
+        // Обработка line_items перед отправкой в Zoho
+        $salesOrderData['line_items'] = array_map(function($item) {
+            $zohoLineItem = [
+                'item_id' => (string) $item['item_id'],      // Убедимся, что item_id всегда строка
+                'quantity' => (float) $item['quantity'],    // Zoho часто ожидает float
+                'rate' => (float) $item['rate'],          // Zoho часто ожидает float
+            ];
 
-        // Проверяем, что заказ успешно создан и его данные возвращены.
+            // Если есть discount_amount, добавляем его
+            if (isset($item['discount_amount']) && is_numeric($item['discount_amount']) && $item['discount_amount'] > 0) {
+                $zohoLineItem['discount'] = (float) $item['discount_amount']; // <-- ИЗМЕНЕНО
+                // Поле 'discount_type' не нужно, так как мы всегда отправляем сумму
+            } else {
+                // Логируем, если discount_amount отсутствует или не является числом > 0
+                Log::info('ZohoSalesOrderService: discount_amount отсутствует или невалиден для позиции.', [
+                    'item_id' => $item['item_id'] ?? 'N/A',
+                    'discount_amount' => $item['discount_amount'] ?? 'N/A' // Логируем discount_amount
+                ]);
+            }
+
+            // Добавляем другие поля, если они есть и нужны для Zoho API
+            if (isset($item['description'])) {
+                $zohoLineItem['description'] = (string) $item['description'];
+            }
+            // ... другие поля, которые вы хотите включить ...
+
+            Log::info('ZohoSalesOrderService: Анализ line_item', [
+                'original_item' => $item,
+                'transformed_zoho_line_item' => $zohoLineItem
+            ]);
+
+            return $zohoLineItem;
+        }, $salesOrderData['line_items'] ?? []);
+        // --- КОНЕЦ НОВОГО КОДА ДЛЯ ЛОГИРОВАНИЯ И ОБРАБОТКИ ---
+
+
+        $response = $this->zohoApiPost('/inventory/v1/salesorders', $salesOrderData);
+
         if ($response && isset($response['salesorder'])) {
             Log::info('Successfully created Zoho Sales Order.', ['salesorder_id' => $response['salesorder']['salesorder_id']]);
             return $response['salesorder'];
         }
 
-        // Логируем ошибку, если создание заказа на продажу не удалось.
-        Log::error('Failed to create Zoho Sales Order.', ['response' => $response, 'requestData' => $requestData]);
+        Log::error('Failed to create Zoho Sales Order.', ['response' => $response, 'requestData' => $salesOrderData]);
         return null;
     }
 }

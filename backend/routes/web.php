@@ -3,10 +3,8 @@
 use Illuminate\Support\Facades\Route;
 use App\Http\Controllers\ZohoAuthController;
 
-// Маршрут для получения CSRF-куки Laravel Sanctum.
-// Фронтенд (main.js) вызывает его при старте.
+// Маршрут для получения CSRF-куки Laravel Sanctum
 Route::get('/sanctum/csrf-cookie', function () {
-    // response()->noContent() возвращает HTTP 204 No Content, что является стандартом для таких запросов.
     return response()->noContent();
 });
 

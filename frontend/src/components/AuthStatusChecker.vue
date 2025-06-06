@@ -9,62 +9,60 @@ export default {
   name: 'AuthStatusChecker',
   data() {
     return {
-      message: 'Проверка статуса авторизации...',
+      message: 'Checking authorization status...',
       detailMessage: null,
-      isLoading: true, // Флаг для отображения спиннера
+      isLoading: true, // Loading spinner flag.
     };
   },
   async mounted() {
-    // 1. Проверяем параметры из URL после редиректа от ZohoAuthController
+    // 1. Check URL parameters after redirection from ZohoAuthController.
     const params = new URLSearchParams(window.location.search);
     const authStatus = params.get('auth_status');
     const authMessage = params.get('message');
 
     if (authStatus && authMessage) {
       this.detailMessage = decodeURIComponent(authMessage);
-      history.replaceState({}, document.title, window.location.pathname); // Очищаем URL
+      history.replaceState({}, document.title, window.location.pathname); // Clear URL parameters.
 
       if (authStatus === 'success') {
-        this.message = 'Авторизация Zoho Inventory прошла успешно!';
-        // Если успех, перенаправляем на форму заказа через короткую задержку
+        this.message = 'Zoho Inventory authorization successful!';
+        // If successful, redirect to the order form after a short delay.
         setTimeout(() => {
           this.$router.push({ name: 'SalesOrderForm' });
-        }, 1500); // Небольшая задержка, чтобы пользователь увидел сообщение
+        }, 1500); // Short delay for user to see the message.
       } else {
-        this.message = 'Ошибка авторизации Zoho Inventory.';
-        // Если ошибка, перенаправляем на страницу, требующую авторизации
+        this.message = 'Zoho Inventory authorization failed.';
+        // If there's an error, redirect to the authorization required page.
         setTimeout(() => {
           this.$router.push({ name: 'AuthRequired', query: { message: authMessage, status: authStatus } });
         }, 1500);
       }
       this.isLoading = false;
-      return; // Завершаем выполнение, так как параметры URL были обработаны
+      return; // Exit as URL parameters have been processed.
     }
 
-    // 2. Если параметров в URL нет, проверяем статус авторизации через API
+    // 2. If no URL parameters, check authorization status via API.
     try {
-      // Используем axios, который мы настроили в main.js
-      //const response = await this.$axios.get('/api/zoho/auth-status');
-      const response = await apiClient.get('/zoho/auth');
+      const response = await apiClient.get('/zoho/auth-status'); // Changed to /zoho/auth-status
 
       if (response.data.authenticated) {
-        this.message = 'Вы уже авторизованы в Zoho Inventory.';
-        this.detailMessage = 'Перенаправление на форму заказа...';
+        this.message = 'You are already authorized in Zoho Inventory.';
+        this.detailMessage = 'Redirecting to order form...';
         setTimeout(() => {
           this.$router.push({ name: 'SalesOrderForm' });
         }, 1000);
       } else {
-        this.message = 'Требуется авторизация Zoho Inventory.';
-        this.detailMessage = 'Перенаправление на страницу авторизации...';
+        this.message = 'Zoho Inventory authorization required.';
+        this.detailMessage = 'Redirecting to authorization page...';
         setTimeout(() => {
           this.$router.push({ name: 'AuthRequired' });
         }, 1000);
       }
     } catch (error) {
-      console.error('Ошибка при проверке статуса авторизации Zoho:', error);
-      this.message = 'Не удалось проверить статус авторизации Zoho.';
-      this.detailMessage = 'Пожалуйста, попробуйте авторизоваться снова.';
-      this.$router.push({ name: 'AuthRequired', query: { error: true, message: 'Не удалось проверить статус авторизации.' } });
+      console.error('Error checking Zoho authorization status:', error);
+      this.message = 'Failed to check Zoho authorization status.';
+      this.detailMessage = 'Please try authorizing again.';
+      this.$router.push({ name: 'AuthRequired', query: { error: true, message: 'Failed to check authorization status.' } });
     } finally {
       this.isLoading = false;
     }

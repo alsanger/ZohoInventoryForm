@@ -10,11 +10,8 @@ return new class extends Migration
     {
         Schema::create('zoho_tokens', function (Blueprint $table) {
             $table->id();
-            // 'access_token' для хранения токена доступа Zoho
             $table->text('access_token');
-            // 'refresh_token' для хранения токена обновления Zoho
             $table->text('refresh_token');
-            // 'expires_at' для хранения времени истечения access_token
             $table->datetime('expires_at');
             $table->timestamps();
         });

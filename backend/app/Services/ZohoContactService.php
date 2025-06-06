@@ -4,88 +4,66 @@ namespace App\Services;
 
 use Illuminate\Support\Facades\Log;
 
-/**
- * Сервис для работы с контактами (клиентами и поставщиками) в Zoho Inventory.
- *
- * Наследует ZohoBaseApiService для выполнения HTTP-запросов к Zoho API.
- */
 class ZohoContactService extends ZohoBaseApiService
 {
     /**
-     * Получает список контактов из Zoho Inventory.
-     * Zoho Inventory API: GET /contacts
-     *
-     * @param string $contactType Тип контакта для фильтрации (например, 'customer', 'vendor' или пустая строка для всех).
-     * @param array $filters Дополнительные параметры запроса (например, 'per_page', 'page', 'sort_column').
-     * @return array Массив контактов или пустой массив в случае ошибки.
+     * Получить список контактов из Zoho Inventory.
      */
     public function getContacts(string $contactType = '', array $filters = []): array
     {
         $query = array_merge([
-            'per_page' => 200,      // Количество записей на страницу (можно увеличить при необходимости)
-            'page' => 1,            // Номер страницы
-            'sort_column' => 'contact_name', // Сортировка по имени контакта
-            'sort_order' => 'A',  // Порядок сортировки: по возрастанию
+            'per_page' => 200,
+            'page' => 1,
+            'sort_column' => 'contact_name',
+            'sort_order' => 'A',
         ], $filters);
 
-        // Добавляем фильтр по типу контакта, если он указан.
         if (!empty($contactType)) {
             $query['contact_type'] = $contactType;
         }
 
-        // Выполняем GET-запрос к API контактов.
         $response = $this->zohoApiGet('/inventory/v1/contacts', $query);
 
-        // Проверяем, что ответ получен и содержит список контактов.
         if ($response && isset($response['contacts'])) {
-            Log::info('Successfully fetched Zoho contacts.', ['count' => count($response['contacts'])]);
+            Log::info('Контакты Zoho успешно получены.', ['count' => count($response['contacts'])]);
             return $response['contacts'];
         }
 
-        // Логируем ошибку, если контакты не удалось получить.
-        Log::error('Failed to fetch Zoho contacts.', ['response' => $response, 'query' => $query]);
+        Log::error('Не удалось получить контакты Zoho.', ['response' => $response, 'query' => $query]);
         return [];
     }
 
     /**
-     * Создает новый контакт (клиента или поставщика) в Zoho Inventory.
-     * Zoho Inventory API: POST /contacts
-     *
-     * @param array $contactData Данные нового контакта (например, ['contact_name' => 'Имя Клиента', 'contact_type' => 'customer']).
-     * Обязательно должно содержать 'contact_name'.
-     * @return array|null Созданный контакт (с его ID) или null в случае ошибки.
+     * Создать новый контакт в Zoho Inventory.
      */
     public function createContact(array $contactData): ?array
     {
-        // Проверяем наличие обязательного поля contact_name.
+        // Проверка обязательного поля.
         if (!isset($contactData['contact_name']) || empty($contactData['contact_name'])) {
-            Log::error('Attempt to create Zoho contact without contact_name.', ['data' => $contactData]);
+            Log::error('Попытка создать контакт Zoho без имени.', ['data' => $contactData]);
             return null;
         }
 
-        // Устанавливаем contact_type в 'customer' ТОЛЬКО если он не был предоставлен (null)
+        // Установка типа контакта по умолчанию, если не указан.
         if (!isset($contactData['contact_type']) || empty($contactData['contact_type'])) {
             $contactData['contact_type'] = 'customer';
-            Log::info('ZohoContactService: contact_type не был указан, установлен по умолчанию в "customer".', ['final_contact_type' => $contactData['contact_type']]);
+            Log::info('Тип контакта не указан, установлен по умолчанию: "customer".', ['final_contact_type' => $contactData['contact_type']]);
         } else {
-            Log::info('ZohoContactService: contact_type получен из запроса.', ['received_contact_type' => $contactData['contact_type']]);
+            Log::info('Тип контакта получен из запроса.', ['received_contact_type' => $contactData['contact_type']]);
         }
 
         $requestData = $contactData;
 
-        Log::debug('ZohoContactService: Sending contact creation request to Zoho API.', ['payload' => $requestData]);
+        Log::debug('Отправка запроса на создание контакта в Zoho API.');
 
-        // Выполняем POST-запрос к API контактов.
         $response = $this->zohoApiPost('/inventory/v1/contacts', $requestData);
 
-        // Проверяем, что контакт успешно создан и его данные возвращены.
         if ($response && isset($response['contact'])) {
-            Log::info('Successfully created Zoho contact.', ['contact_id' => $response['contact']['contact_id']]);
+            Log::info('Контакт Zoho успешно создан.', ['contact_id' => $response['contact']['contact_id']]);
             return $response['contact'];
         }
 
-        // Логируем ошибку, если создание контакта не удалось.
-        Log::error('Failed to create Zoho contact.', ['response' => $response, 'requestData' => $requestData]);
+        Log::error('Не удалось создать контакт Zoho.', ['response' => $response, 'requestData' => $requestData]);
         return null;
     }
 }

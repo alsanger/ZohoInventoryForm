@@ -26,7 +26,8 @@
       <div v-if="selectedContact" class="mb-3 p-3 border rounded bg-light">
         <h5 class="mb-2">Client Information:</h5>
         <p class="mb-1"><strong>Name:</strong> {{ selectedContact.contact_name }}</p>
-        <p class="mb-0"><strong>Shipping Address:</strong> {{ formatShippingAddress(selectedContact) }}</p>
+        <p v-if="selectedContact.email" class="mb-1"><strong>Email:</strong> {{ selectedContact.email }}</p>
+        <p v-if="selectedContact.phone" class="mb-0"><strong>Phone:</strong> {{ selectedContact.phone }}</p>
       </div>
 
       <h3 class="text-center mt-4 mb-3">Order positions</h3>
@@ -284,10 +285,9 @@ export default {
       products: [],
       allVendors: [],
       selectedContact: null,
-      // --- ОБНОВЛЕННЫЙ ОБЪЕКТ newContact ---
       newContact: {
         contact_name: '',
-        contact_type: 'customer', // По умолчанию 'customer', но можно изменить в выпадающем списке
+        contact_type: 'customer',
         company_name: '',
         email: '',
         phone: '',
@@ -300,11 +300,9 @@ export default {
           phone: ''
         }
       },
-      // --- КОНЕЦ ОБНОВЛЕННОГО newContact ---
       form: {
         customer_id: '',
         line_items: [
-          // !!! ИЗМЕНЕНИЕ: Количество по умолчанию 0 для первой строки
           { item_id: '', quantity: 0, rate: 0, discount_percentage: 0, available_stock: 0, quantity_to_order: undefined, selected_vendor_id: undefined, purchase_rate: undefined }
         ],
         create_purchase_orders_for_deficit: false,
@@ -728,29 +726,6 @@ export default {
       this.selectedContact = this.contacts.find(
         contact => contact.contact_id === this.form.customer_id
       ) || null;
-    },
-    formatShippingAddress(contact) {
-      if (!contact || !contact.shipping_address) {
-        return 'Address not specified.';
-      }
-      const address = contact.shipping_address;
-      if (typeof address === 'string') {
-        return address;
-      }
-      const addressParts = [];
-      // Zoho API возвращает внимание как "attention", не "address_attention"
-      if (address.attention) addressParts.push(address.attention);
-      if (address.address) addressParts.push(address.address);
-      if (address.street2) addressParts.push(address.street2); // На случай, если есть street2
-      if (address.city) addressParts.push(address.city);
-      if (address.state) addressParts.push(address.state);
-      if (address.zip) addressParts.push(address.zip);
-      if (address.country) addressParts.push(address.country);
-
-      if (addressParts.length > 0) {
-        return addressParts.filter(Boolean).join(', ');
-      }
-      return 'Address not specified.';
     },
   }
 };

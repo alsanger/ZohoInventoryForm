@@ -9,23 +9,11 @@ use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Log;
 
-/**
- * Контроллер API для управления товарами в Zoho Inventory.
- *
- * Отвечает за получение списка товаров.
- */
 class ZohoItemController extends Controller
 {
     protected ZohoItemService $zohoItemService;
-    protected ZohoAuthService $zohoAuthService; // Нужен для проверки токена в middleware
+    protected ZohoAuthService $zohoAuthService;
 
-    /**
-     * Конструктор ZohoItemController.
-     * Инжектирует ZohoItemService и применяет middleware для проверки авторизации Zoho.
-     *
-     * @param ZohoItemService $zohoItemService
-     * @param ZohoAuthService $zohoAuthService
-     */
     public function __construct(ZohoItemService $zohoItemService, ZohoAuthService $zohoAuthService)
     {
         $this->zohoItemService = $zohoItemService;
@@ -33,32 +21,27 @@ class ZohoItemController extends Controller
     }
 
     /**
-     * Получает список товаров из Zoho Inventory.
-     * Поддерживает поиск по названию товара.
-     *
-     * @param Request $request Параметры запроса, такие как 'search'.
-     * @return JsonResponse Массив товаров.
+     * Получить список товаров из Zoho Inventory.
      */
     public function index(Request $request): JsonResponse
     {
         $filters = [];
         if ($request->has('search') && !empty($request->input('search'))) {
-            // Zoho API использует 'search_text' для полнотекстового поиска по товарам.
             $filters['search_text'] = $request->input('search');
         }
 
         $itemsData = $this->zohoItemService->getItems($filters);
 
         if (empty($itemsData['items']) && !empty($request->input('search'))) {
-            Log::info('No Zoho items found for search query.', ['search' => $filters['search_text']]);
+            Log::info('Товары Zoho не найдены по запросу.', ['search' => $filters['search_text']]);
         } elseif (empty($itemsData['items'])) {
-            Log::warning('No Zoho items found during general fetch.');
+            Log::warning('Товары Zoho не найдены.');
         }
 
         return response()->json([
             'success' => true,
             'items' => $itemsData['items'],
-            'page_context' => $itemsData['page_context'] ?? [] // Пагинация от Zoho
+            'page_context' => $itemsData['page_context'] ?? []
         ]);
     }
 }

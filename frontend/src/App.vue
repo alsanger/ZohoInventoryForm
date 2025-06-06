@@ -31,7 +31,7 @@ export default {
       this.authMessage = decodeURIComponent(message);
 
       // Очищаем параметры из URL, чтобы они не оставались при обновлении страницы
-      // Используем replaceState, чтобы не добавлять запись в историю браузера
+      // replaceState, чтобы не добавлять запись в историю браузера
       history.replaceState({}, document.title, window.location.pathname);
     }
   },

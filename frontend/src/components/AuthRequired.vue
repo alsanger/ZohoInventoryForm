@@ -26,40 +26,37 @@ export default {
     };
   },
   mounted() {
-    // Читаем параметры из URL при загрузке компонента
+    // Получить параметры из URL.
     const params = new URLSearchParams(window.location.search);
-    const status = params.get('status'); // Параметр 'status' от AuthStatusChecker
-    const message = params.get('message'); // Параметр 'message' от AuthStatusChecker
-    const errorParam = params.get('error'); // Параметр 'error' для общих ошибок
+    const status = params.get('status');
+    const message = params.get('message');
+    const errorParam = params.get('error');
 
     if (message) {
       this.displayMessage = decodeURIComponent(message);
-      // Если есть параметр 'error=true' или status='error', устанавливаем статус ошибки
+      // Определить статус сообщения.
       if (errorParam === 'true' || status === 'error') {
         this.displayStatus = 'error';
       } else {
-        // Можно использовать 'warning' или 'info' для других статусов, если нужно
         this.displayStatus = 'warning';
       }
-      history.replaceState({}, document.title, window.location.pathname); // Очищаем URL
+      history.replaceState({}, document.title, window.location.pathname); // Очистить URL.
     }
   },
   methods: {
-    // Метод для перенаправления пользователя на URL авторизации Zoho
+    // Перенаправить пользователя на URL авторизации Zoho.
     async redirectToZohoAuth() {
       try {
-        // Вызываем эндпоинт бэкенда, который вернет URL для Zoho Auth
-        //const response = await this.$axios.get('/api/zoho/auth');
         const response = await apiClient.get('/zoho/auth');
         if (response.data && response.data.auth_url) {
-          window.location.href = response.data.auth_url; // Перенаправляем пользователя на Zoho
+          window.location.href = response.data.auth_url; // Перенаправление.
         } else {
-          this.displayMessage = 'Не удалось получить URL для авторизации Zoho. Пожалуйста, попробуйте позже.';
+          this.displayMessage = 'Failed to get Zoho authorization URL. Please try again later.';
           this.displayStatus = 'error';
         }
       } catch (error) {
         console.error('Ошибка при получении URL авторизации Zoho:', error);
-        this.displayMessage = 'Ошибка соединения с сервером. Не удалось начать авторизацию Zoho.';
+        this.displayMessage = 'Connection error. Failed to start Zoho authorization.';
         this.displayStatus = 'error';
       }
     },

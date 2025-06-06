@@ -1,67 +1,60 @@
 import { createRouter, createWebHistory } from 'vue-router';
-// import axios from 'axios'; // <-- Добавляем импорт axios
-import apiClient from '@/plugins/axios'
+import apiClient from '@/plugins/axios';
 
-// Импортируем компоненты, которые будем использовать в маршрутах.
-import AuthRequired from '../components/AuthRequired.vue'; // Страница для неавторизованных
-import SalesOrderForm from '../components/SalesOrderForm.vue'; // Форма заказа на продажу
-import AuthStatusChecker from '../components/AuthStatusChecker.vue'; // Компонент для проверки статуса после OAuth
+import AuthRequired from '../components/AuthRequired.vue';
+import SalesOrderForm from '../components/SalesOrderForm.vue';
+import AuthStatusChecker from '../components/AuthStatusChecker.vue';
 
 const routes = [
-  // Маршрут для обработки callback от Zoho.
-  // На этот маршрут будет перенаправлять Laravel после авторизации.
-  // AuthStatusChecker будет определять, куда идти дальше (на форму заказа или показывать ошибку).
+  // Маршрут для обработки callback от Zoho
   {
     path: '/',
     name: 'AuthStatusChecker',
     component: AuthStatusChecker,
   },
-  // Маршрут для отображения страницы с кнопкой авторизации
+  // Маршрут для страницы с кнопкой авторизации
   {
     path: '/auth-required',
     name: 'AuthRequired',
     component: AuthRequired,
   },
-  // Маршрут для формы создания заказа на продажу
+  // Маршрут для формы создания заказа на продажу, защищенный авторизацией
   {
     path: '/sales-order',
     name: 'SalesOrderForm',
     component: SalesOrderForm,
-    // Добавляем meta-поле для защиты маршрута, чтобы только авторизованные могли попасть
     meta: { requiresAuth: true }
   },
-  // Другие маршруты по необходимости
 ];
 
 const router = createRouter({
-  history: createWebHistory(import.meta.env.BASE_URL), // <-- Добавил import.meta.env.BASE_URL
+  history: createWebHistory(import.meta.env.BASE_URL),
   routes,
 });
 
-// Добавляем навигационный хук (navigation guard) для проверки авторизации
+// Проверка авторизации перед каждым переходом
 router.beforeEach(async (to, from, next) => {
-  // Если маршрут требует аутентификации
+  // Если маршрут требует авторизации
   if (to.meta.requiresAuth) {
     try {
-      // Отправляем запрос на бэкенд для проверки статуса авторизации Zoho
-      //const response = await axios.get('/api/zoho/auth-status');
+      // Проверяем статус авторизации Zoho через API
       const response = await apiClient.get('/zoho/auth-status');
 
       if (response.data.authenticated) {
-        // Если пользователь авторизован, разрешаем переход
+        // Если авторизован, разрешаем переход
         next();
       } else {
         // Если не авторизован, перенаправляем на страницу авторизации
         next({ name: 'AuthRequired' });
       }
     } catch (error) {
-      console.error('Ошибка при проверке статуса авторизации Zoho в роутере:', error);
-      // Если произошла ошибка при проверке (например, сервер недоступен или 500 ошибка),
-      // также перенаправляем на страницу авторизации с сообщением об ошибке
+      // Логируем ошибку при проверке статуса
+      console.error('Ошибка при проверке статуса авторизации Zoho:', error);
+      // Перенаправляем на страницу авторизации с сообщением об ошибке
       next({ name: 'AuthRequired', query: { error: true, message: 'Не удалось проверить статус авторизации при навигации.' } });
     }
   } else {
-    // Для маршрутов, которые не требуют аутентификации, просто разрешаем переход
+    // Для маршрутов без авторизации разрешаем переход
     next();
   }
 });

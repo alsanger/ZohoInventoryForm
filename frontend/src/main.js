@@ -15,7 +15,7 @@ const app = createApp(App)
 app.use(createPinia())
 app.use(router)
 
-// Важно: настройки axios должны быть до любых запросов
+// Настройки axios должны быть до любых запросов
 axios.defaults.withCredentials = true;
 axios.defaults.baseURL = import.meta.env.VITE_BACKEND_BASE_URL;
 axios.defaults.headers.common['Accept'] = 'application/json';

@@ -8,53 +8,33 @@ use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Log;
 
-/**
- * Контроллер для общих утилит API.
- * Включает методы для получения CSRF-токена и проверки статуса авторизации Zoho.
- */
 class UtilController extends Controller
 {
     protected ZohoAuthService $zohoAuthService;
 
-    /**
-     * Конструктор UtilController.
-     * Инжектирует ZohoAuthService для проверки статуса авторизации.
-     *
-     * @param ZohoAuthService $zohoAuthService
-     */
     public function __construct(ZohoAuthService $zohoAuthService)
     {
         $this->zohoAuthService = $zohoAuthService;
     }
 
     /**
-     * Возвращает CSRF-токен для фронтенда Vue.js.
-     * Фронтенд должен получить этот токен перед отправкой POST/PUT/DELETE запросов.
-     *
-     * @param Request $request
-     * @return JsonResponse
+     * Получить CSRF-токен для фронтенда.
      */
     public function getCsrfToken(Request $request): JsonResponse
     {
-        Log::info('CSRF token requested.');
+        Log::info('Запрос CSRF токена.');
         return response()->json([
             'csrf_token' => csrf_token()
         ]);
     }
 
     /**
-     * Проверяет статус авторизации Zoho.
-     * Используется фронтендом для определения, нужно ли отображать интерфейс
-     * или кнопку "Авторизоваться с Zoho".
-     *
-     * @return JsonResponse
+     * Проверить статус авторизации Zoho.
      */
     public function checkZohoAuthStatus(): JsonResponse
     {
-        // getToken() внутри ZohoAuthService сам по себе возвращает токен или null,
-        // что позволяет определить статус авторизации и при необходимости обновить токен.
         $isAuthenticated = (bool) $this->zohoAuthService->getToken();
-        Log::info('Zoho auth status checked.', ['authenticated' => $isAuthenticated]);
+        Log::info('Статус авторизации Zoho проверен.', ['authenticated' => $isAuthenticated]);
         return response()->json(['authenticated' => $isAuthenticated]);
     }
 }

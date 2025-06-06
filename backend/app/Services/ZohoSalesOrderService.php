@@ -4,51 +4,39 @@ namespace App\Services;
 
 use Illuminate\Support\Facades\Log;
 
-/**
- * Сервис для работы с заказами на продажу (Sales Orders) в Zoho Inventory.
- *
- * Наследует ZohoBaseApiService для выполнения HTTP-запросов к Zoho API.
- */
 class ZohoSalesOrderService extends ZohoBaseApiService
 {
     /**
-     * Создает новый заказ на продажу (Sales Order) в Zoho Inventory.
-     * Zoho Inventory API: POST /salesorders
-     *
-     * @param array $salesOrderData Данные заказа на продажу, соответствующие формату API Zoho Inventory.
-     * Должны включать 'customer_id' и 'line_items'.
-     * @return array|null Созданный заказ на продажу (с его ID) или null в случае ошибки.
+     * Создать новый заказ на продажу в Zoho Inventory.
      */
     public function createSalesOrder(array $salesOrderData): ?array
     {
-        Log::info('ZohoSalesOrderService: Входящие данные для создания Sales Order', ['salesOrderData' => $salesOrderData]);
+        Log::info('Входящие данные для создания Sales Order.', ['salesOrderData' => $salesOrderData]);
 
-        // Обработка line_items перед отправкой в Zoho
+        // Обработка позиций заказа перед отправкой в Zoho.
         $salesOrderData['line_items'] = array_map(function($item) {
             $zohoLineItem = [
-                'item_id' => (string) $item['item_id'],      // Убедимся, что item_id всегда строка
-                'quantity' => (float) $item['quantity'],    // Zoho часто ожидает float
-                'rate' => (float) $item['rate'],          // Zoho часто ожидает float
+                'item_id' => (string) $item['item_id'],
+                'quantity' => (float) $item['quantity'],
+                'rate' => (float) $item['rate'],
             ];
 
-            // Если есть discount_amount, добавляем его
+            // Добавить скидку, если указана.
             if (isset($item['discount_amount']) && is_numeric($item['discount_amount']) && $item['discount_amount'] > 0) {
-                $zohoLineItem['discount'] = (float) $item['discount_amount']; // <-- ИЗМЕНЕНО
-                // Поле 'discount_type' не нужно, так как мы всегда отправляем сумму
+                $zohoLineItem['discount'] = (float) $item['discount_amount'];
             } else {
-                // Логируем, если discount_amount отсутствует или не является числом > 0
-                Log::info('ZohoSalesOrderService: discount_amount отсутствует или невалиден для позиции.', [
+                Log::info('Сумма скидки отсутствует или невалидна для позиции.', [
                     'item_id' => $item['item_id'] ?? 'N/A',
-                    'discount_amount' => $item['discount_amount'] ?? 'N/A' // Логируем discount_amount
+                    'discount_amount' => $item['discount_amount'] ?? 'N/A'
                 ]);
             }
 
-            // Добавляем другие поля, если они есть и нужны для Zoho API
+            // Добавить описание, если есть.
             if (isset($item['description'])) {
                 $zohoLineItem['description'] = (string) $item['description'];
             }
 
-            Log::info('ZohoSalesOrderService: Анализ line_item', [
+            Log::info('Анализ позиции заказа.', [
                 'original_item' => $item,
                 'transformed_zoho_line_item' => $zohoLineItem
             ]);

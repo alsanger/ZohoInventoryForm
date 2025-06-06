@@ -210,6 +210,49 @@
                   <option value="vendor">Vendor</option>
                 </select>
               </div>
+
+              <div class="mb-3">
+                <label for="newCompanyName" class="form-label">Company Name:</label>
+                <input type="text" class="form-control" id="newCompanyName" v-model="newContact.company_name">
+              </div>
+              <div class="mb-3">
+                <label for="newEmail" class="form-label">Email:</label>
+                <input type="email" class="form-control" id="newEmail" v-model="newContact.email">
+              </div>
+              <div class="mb-3">
+                <label for="newPhone" class="form-label">Phone:</label>
+                <input type="tel" class="form-control" id="newPhone" v-model="newContact.phone">
+              </div>
+
+              <h6 class="mt-4 mb-3">Shipping Address:</h6>
+              <div class="mb-3">
+                <label for="newShippingAddress" class="form-label">Address:</label>
+                <input type="text" class="form-control" id="newShippingAddress" v-model="newContact.shipping_address.address">
+              </div>
+              <div class="mb-3 row">
+                <div class="col-md-6">
+                  <label for="newShippingCity" class="form-label">City:</label>
+                  <input type="text" class="form-control" id="newShippingCity" v-model="newContact.shipping_address.city">
+                </div>
+                <div class="col-md-6">
+                  <label for="newShippingState" class="form-label">State:</label>
+                  <input type="text" class="form-control" id="newShippingState" v-model="newContact.shipping_address.state">
+                </div>
+              </div>
+              <div class="mb-3 row">
+                <div class="col-md-6">
+                  <label for="newShippingZip" class="form-label">Zip:</label>
+                  <input type="text" class="form-control" id="newShippingZip" v-model="newContact.shipping_address.zip">
+                </div>
+                <div class="col-md-6">
+                  <label for="newShippingCountry" class="form-label">Country:</label>
+                  <input type="text" class="form-control" id="newShippingCountry" v-model="newContact.shipping_address.country">
+                </div>
+              </div>
+              <div class="mb-3">
+                <label for="newShippingPhone" class="form-label">Shipping Phone:</label>
+                <input type="tel" class="form-control" id="newShippingPhone" v-model="newContact.shipping_address.phone">
+              </div>
             </div>
             <div class="modal-footer">
               <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
@@ -241,10 +284,23 @@ export default {
       products: [],
       allVendors: [],
       selectedContact: null,
+      // --- ОБНОВЛЕННЫЙ ОБЪЕКТ newContact ---
       newContact: {
         contact_name: '',
-        contact_type: 'customer',
+        contact_type: 'customer', // По умолчанию 'customer', но можно изменить в выпадающем списке
+        company_name: '',
+        email: '',
+        phone: '',
+        shipping_address: {
+          address: '',
+          city: '',
+          state: '',
+          zip: '',
+          country: '',
+          phone: ''
+        }
       },
+      // --- КОНЕЦ ОБНОВЛЕННОГО newContact ---
       form: {
         customer_id: '',
         line_items: [
@@ -364,7 +420,7 @@ export default {
             (item.purchase_rate === undefined || item.purchase_rate < 0) ||
             (item.quantity_to_order < item.deficit_needed) // Убеждаемся, что заказанное кол-во покрывает дефицит
           );
-          if (invalidDeficitItems) return true;
+          if (invalidDeficitItems) return true; // <-- ИСПРАВЛЕННАЯ СТРОКА
 
         } else {
           // Если дефицит есть, но PO не создается, то кнопка заблокирована
@@ -510,6 +566,24 @@ export default {
       }
     },
     showNewContactModal() {
+      // Сбрасываем форму модального окна при открытии
+      this.newContact = {
+        contact_name: '',
+        contact_type: 'customer', // По умолчанию 'customer'
+        company_name: '',
+        email: '',
+        phone: '',
+        shipping_address: {
+          address: '',
+          city: '',
+          state: '',
+          zip: '',
+          country: '',
+          phone: ''
+        }
+      };
+      this.submitError = null; // Очищаем ошибки при открытии
+      this.successMessage = null; // Очищаем сообщения об успехе
       this.newContactModalInstance.show();
     },
     async createNewContact() {
@@ -517,11 +591,18 @@ export default {
       try {
         const response = await apiClient.post('/zoho/contacts', this.newContact);
         this.newContactModalInstance.hide();
-        this.successMessage = 'Contact "' + response.data.contact.contact_name + '" successfully created!';
-        await this.fetchInitialData();
-        this.form.customer_id = response.data.contact.contact_id;
-        this.updateSelectedContactInfo();
-        this.newContact = { contact_name: '', contact_type: 'customer' };
+        const createdContact = response.data;
+
+        this.successMessage = 'Contact "' + createdContact.contact_name + '" successfully created!';
+
+        if (this.newContact.contact_type === 'customer') {
+          await this.fetchInitialData(); // Обновляет this.contacts для dropdown клиентов
+          this.form.customer_id = createdContact.contact_id; // Выбираем только что созданного клиента
+          this.updateSelectedContactInfo();
+        } else if (this.newContact.contact_type === 'vendor') {
+          await this.fetchAllVendors();
+        }
+
       } catch (err) {
         this.submitError = 'Error creating new contact: ' + (err.response?.data?.message || err.message);
         console.error('Error creating contact:', err.response?.data || err);
@@ -550,7 +631,7 @@ export default {
               !item.selected_vendor_id ||
               (item.quantity_to_order === undefined || item.quantity_to_order <= 0) ||
               (item.purchase_rate === undefined || item.purchase_rate < 0) ||
-              (item.quantity_to_order < item.deficit_needed)
+              (item.quantity_to_order < invalidPoItem.deficit_needed) // Исправлена опечатка `item.deficit_needed`
             );
             if (invalidPoItem) {
               if (!invalidPoItem.selected_vendor_id) {
@@ -598,7 +679,7 @@ export default {
           this.deficitItems.forEach(item => {
             // Если у каждого дефицитного товара есть выбранный поставщик и корректные данные для PO
             if (!item.selected_vendor_id || item.quantity_to_order <= 0 || item.purchase_rate < 0) {
-              console.warn(`Item ${item.item_name} has deficit but missing valid PO details. Skipping for PO generation.`);
+              console.warn(`Item ${item.name} has deficit but missing valid PO details. Skipping for PO generation.`);
               return; // Пропускаем элемент, если он неполноценен для PO
             }
             // Создаем структуру PO для данного вендора, если ее еще нет
@@ -657,9 +738,10 @@ export default {
         return address;
       }
       const addressParts = [];
+      // Zoho API возвращает внимание как "attention", не "address_attention"
       if (address.attention) addressParts.push(address.attention);
       if (address.address) addressParts.push(address.address);
-      if (address.street2) addressParts.push(address.street2);
+      if (address.street2) addressParts.push(address.street2); // На случай, если есть street2
       if (address.city) addressParts.push(address.city);
       if (address.state) addressParts.push(address.state);
       if (address.zip) addressParts.push(address.zip);
@@ -675,6 +757,7 @@ export default {
 </script>
 
 <style lang="scss">
+// Ваши стили здесь, без изменений
 @use "sass:color";
 @use "../assets/scss/variables" as *;
 

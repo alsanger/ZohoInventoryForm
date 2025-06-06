@@ -63,8 +63,17 @@ class ZohoContactService extends ZohoBaseApiService
             return null;
         }
 
-        // Zoho API требует, чтобы данные контакта были обернуты в ключ 'contact'.
-        $requestData = ['contact' => $contactData];
+        // Устанавливаем contact_type в 'customer' ТОЛЬКО если он не был предоставлен (null)
+        if (!isset($contactData['contact_type']) || empty($contactData['contact_type'])) {
+            $contactData['contact_type'] = 'customer';
+            Log::info('ZohoContactService: contact_type не был указан, установлен по умолчанию в "customer".', ['final_contact_type' => $contactData['contact_type']]);
+        } else {
+            Log::info('ZohoContactService: contact_type получен из запроса.', ['received_contact_type' => $contactData['contact_type']]);
+        }
+
+        $requestData = $contactData;
+
+        Log::debug('ZohoContactService: Sending contact creation request to Zoho API.', ['payload' => $requestData]);
 
         // Выполняем POST-запрос к API контактов.
         $response = $this->zohoApiPost('/inventory/v1/contacts', $requestData);

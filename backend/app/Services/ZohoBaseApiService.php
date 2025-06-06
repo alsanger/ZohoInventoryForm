@@ -106,4 +106,49 @@ abstract class ZohoBaseApiService
             return null;
         }
     }
+
+    /**
+     * Выполнить PUT-запрос к Zoho API.
+     */
+    protected function zohoApiPut(string $endpoint, array $data): ?array
+    {
+        $token = $this->zohoAuthService->getToken();
+
+        if (!$token) {
+            Log::error("Не удалось получить токен Zoho для PUT запроса к {$endpoint}.");
+            return null;
+        }
+
+        try {
+            $headers = [
+                'Authorization' => 'Zoho-oauthtoken ' . $token,
+                'Content-Type' => 'application/json',
+            ];
+
+            $queryParams = [
+                'organization_id' => $this->organizationId,
+            ];
+
+            $url = $this->zohoApiDomain . $endpoint . '?' . http_build_query($queryParams);
+
+            $response = Http::withHeaders($headers)
+                ->put($url, $data);
+
+            if ($response->failed()) {
+                Log::error("PUT запрос к Zoho API завершился ошибкой для {$endpoint}.", [
+                    'status' => $response->status(),
+                    'response' => $response->body(),
+                    'data' => $data,
+                    'endpoint' => $endpoint,
+                    'url_sent' => $url
+                ]);
+                return null;
+            }
+
+            return $response->json();
+        } catch (\Exception $e) {
+            Log::error("Исключение при PUT запросе к Zoho API {$endpoint}.", ['error' => $e->getMessage(), 'endpoint' => $endpoint]);
+            return null;
+        }
+    }
 }

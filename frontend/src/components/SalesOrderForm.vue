@@ -6,6 +6,7 @@
     <div v-if="error" class="alert alert-danger text-center">{{ error }}</div>
 
     <form @submit.prevent="handleSubmit" v-if="!loading && !error">
+      <!-- Клиент -->
       <div class="mb-3 row align-items-end">
         <label for="contact" class="col-sm-2 col-form-label fw-bold">Client:</label>
         <div class="col-sm-8">
@@ -23,6 +24,7 @@
         </div>
       </div>
 
+      <!-- Информация о клиенте -->
       <div v-if="selectedContact" class="mb-3 p-3 border rounded bg-light">
         <h5 class="mb-2">Client Information:</h5>
         <p class="mb-1"><strong>Name:</strong> {{ selectedContact.contact_name }}</p>
@@ -30,6 +32,7 @@
         <p v-if="selectedContact.phone" class="mb-0"><strong>Phone:</strong> {{ selectedContact.phone }}</p>
       </div>
 
+      <!-- Позиции заказа -->
       <h3 class="text-center mt-4 mb-3">Order positions</h3>
       <div class="table-responsive">
         <table class="table table-bordered table-striped sales-order-table">
@@ -44,14 +47,15 @@
           </tr>
           </thead>
           <tbody>
-          <tr v-for="(item, index) in form.line_items" :key="item.item_id || 'new-item-' + index"> <td class="item-desc-col">
-            <select v-model="item.item_id" @change="updateItemDetails(index)" class="form-select form-select-sm" required>
-              <option value="" disabled>Select Item</option>
-              <option v-for="product in products" :key="product.item_id" :value="product.item_id">
-                {{ product.name }} ({{ product.sku }})
-              </option>
-            </select>
-          </td>
+          <tr v-for="(item, index) in form.line_items" :key="item.item_id || 'new-item-' + index">
+            <td class="item-desc-col">
+              <select v-model="item.item_id" @change="updateItemDetails(index)" class="form-select form-select-sm" required>
+                <option value="" disabled>Select Item</option>
+                <option v-for="product in products" :key="product.item_id" :value="product.item_id">
+                  {{ product.name }} ({{ product.sku }})
+                </option>
+              </select>
+            </td>
             <td class="ordered-col">
               <div class="d-flex flex-column align-items-center justify-content-start h-100">
                 <input
@@ -92,6 +96,7 @@
         <button type="button" @click="addLineItem" class="btn btn-success btn-sm add-item-button">Add Item</button>
       </div>
 
+      <!-- Итоговая сумма -->
       <div class="summary-section mt-4">
         <div class="row justify-content-end">
           <div class="col-sm-4">
@@ -112,6 +117,7 @@
         </div>
       </div>
 
+      <!-- Заказы на закупку для дефицита -->
       <div v-if="hasDeficitInOrder" class="form-group mt-3">
         <div class="form-check">
           <input
@@ -138,7 +144,8 @@
           </tr>
           </thead>
           <tbody>
-          <tr v-for="(item, index) in deficitItems" :key="item.item_id + '-po-deficit'"> <td class="item-desc-col">{{ item.name }}</td>
+          <tr v-for="(item, index) in deficitItems" :key="item.item_id + '-po-deficit'">
+            <td class="item-desc-col">{{ item.name }}</td>
             <td class="ordered-col">
               <div class="d-flex flex-column align-items-center justify-content-start h-100">
                 <input
@@ -191,6 +198,7 @@
     <div v-if="successMessage" class="alert alert-success mt-4 text-center">{{ successMessage }}</div>
     <div v-if="submitError" class="alert alert-danger mt-4 text-center">{{ submitError }}</div>
 
+    <!-- Модальное окно нового контакта -->
     <div class="modal fade" id="newContactModal" tabindex="-1" aria-labelledby="newContactModalLabel" aria-hidden="true">
       <div class="modal-dialog">
         <div class="modal-content">
@@ -330,98 +338,80 @@ export default {
     },
     hasDeficitInOrder() {
       return this.form.line_items.some(item => {
-        // Проверяем только выбранные товары с item_id
         return item.item_id && item.quantity > 0 && (item.available_stock || 0) < item.quantity;
       });
     },
     deficitItems() {
       return this.form.line_items.filter(item => {
-        // Фильтруем только те, у которых есть реальный дефицит и выбран item_id
         return item.item_id && item.quantity > 0 && (item.available_stock || 0) < item.quantity;
       }).map(item => {
         const product = this.products.find(p => p.item_id === item.item_id);
         const deficitQtyNeeded = Math.max(0, item.quantity - (item.available_stock || 0));
 
-        // !!! ИЗМЕНЕНИЕ: Инициализация полей для PO - только если они UNDEFINED или NULL
-        // Это предотвратит перезапись значений, введенных пользователем
         if (item.quantity_to_order === undefined || item.quantity_to_order === null) {
           item.quantity_to_order = deficitQtyNeeded;
         }
         if (item.selected_vendor_id === undefined || item.selected_vendor_id === null) {
-          item.selected_vendor_id = ''; // Устанавливаем пустую строку, чтобы "Select a vendor" был выбран по умолчанию
+          item.selected_vendor_id = '';
         }
         if (item.purchase_rate === undefined || item.purchase_rate === null) {
           item.purchase_rate = product && product.purchase_rate !== undefined ? product.purchase_rate : 0;
         }
 
-        // Добавляем display-only свойства для удобства отображения
         item.name = product ? product.name : 'Unknown Item';
         item.deficit_needed = deficitQtyNeeded;
 
-        return item; // Возвращаем ссылку на модифицированный исходный объект
+        return item;
       });
     },
-
     isDeficitFullyCoveredByPO() {
       if (!this.form.create_purchase_orders_for_deficit) {
-        return false; // !!! ИЗМЕНЕНИЕ: Если PO не создаются, и есть дефицит, то дефицит не покрыт
+        return false;
       }
       return this.deficitItems.every(item => {
         const totalCovered = (item.available_stock || 0) + (item.quantity_to_order || 0);
         return totalCovered >= item.quantity && item.quantity_to_order >= item.deficit_needed && item.selected_vendor_id && item.purchase_rate >= 0;
       });
     },
-
     hasInvalidPOQuantityToOrder() {
       if (!this.form.create_purchase_orders_for_deficit) return false;
       return this.deficitItems.some(item => {
-        return (item.quantity_to_order || 0) < item.deficit_needed || item.quantity_to_order <= 0; // !!! ИЗМЕНЕНИЕ: Количество PO должно быть > 0
+        return (item.quantity_to_order || 0) < item.deficit_needed || item.quantity_to_order <= 0;
       });
     },
-
     hasUnselectedVendorInPO() {
       if (!this.form.create_purchase_orders_for_deficit) return false;
       return this.deficitItems.some(item => !item.selected_vendor_id);
     },
-    hasInvalidPORate() { // !!! ИЗМЕНЕНИЕ: Новая проверка для ставки закупки
+    hasInvalidPORate() {
       if (!this.form.create_purchase_orders_for_deficit) return false;
       return this.deficitItems.some(item => item.purchase_rate === undefined || item.purchase_rate < 0);
     },
-
     hasAnyValidationErrors() {
-      // 1. Базовая валидация: клиент выбран, все основные позиции заказа заполнены корректно
       if (!this.form.customer_id) return true;
 
-      // Если после добавления пустой строки, в массиве line_items есть только эта пустая строка
-      // или все строки невалидны.
-      // Валидация для line_items должна проверять, что есть хотя бы ОДНА ВАЛИДНАЯ позиция
       const validLineItems = this.form.line_items.filter(item =>
         item.item_id && item.quantity > 0 && item.rate >= 0
       );
       if (validLineItems.length === 0) return true;
 
-      // Дополнительная проверка на некорректные значения в *любой* строке (даже если она не выбрана)
       if (this.form.line_items.some(item =>
-        (item.item_id && (item.quantity <= 0 || item.rate < 0)) || // Если выбран товар, quantity и rate должны быть валидны
-        (!item.item_id && (item.quantity > 0 || item.rate > 0)) // Если товар НЕ выбран, quantity и rate должны быть 0
+        (item.item_id && (item.quantity <= 0 || item.rate < 0)) ||
+        (!item.item_id && (item.quantity > 0 || item.rate > 0))
       )) {
         return true;
       }
 
-      // 2. Валидация, связанная с дефицитом и PO
-      if (this.hasDeficitInOrder) { // Если в заказе есть дефицит
-        if (this.form.create_purchase_orders_for_deficit) { // И пользователь выбрал создать PO
-          // Проверка на то, что deficitItems реально сформировались корректно (vendor_id, quantity_to_order, purchase_rate)
+      if (this.hasDeficitInOrder) {
+        if (this.form.create_purchase_orders_for_deficit) {
           const invalidDeficitItems = this.deficitItems.some(item =>
             !item.selected_vendor_id ||
-            (item.quantity_to_order === undefined || item.quantity_to_order <= 0) || // Проверка, что quantity_to_order > 0
+            (item.quantity_to_order === undefined || item.quantity_to_order <= 0) ||
             (item.purchase_rate === undefined || item.purchase_rate < 0) ||
-            (item.quantity_to_order < item.deficit_needed) // Убеждаемся, что заказанное кол-во покрывает дефицит
+            (item.quantity_to_order < item.deficit_needed)
           );
-          if (invalidDeficitItems) return true; // <-- ИСПРАВЛЕННАЯ СТРОКА
-
+          if (invalidDeficitItems) return true;
         } else {
-          // Если дефицит есть, но PO не создается, то кнопка заблокирована
           return true;
         }
       }
@@ -432,7 +422,6 @@ export default {
     'form.create_purchase_orders_for_deficit'(newValue) {
       if (!newValue) {
         this.form.line_items.forEach(item => {
-          // Сбрасываем значения, но не удаляем свойства
           item.quantity_to_order = undefined;
           item.selected_vendor_id = undefined;
           item.purchase_rate = undefined;
@@ -468,7 +457,6 @@ export default {
         return false;
       }
       const totalCovered = (item.available_stock || 0) + (item.quantity_to_order || 0);
-      // !!! ИЗМЕНЕНИЕ: Также учитываем, что PO-quantity не может быть меньше deficit_needed
       return totalCovered >= item.quantity && item.quantity_to_order >= item.deficit_needed;
     },
     async fetchInitialData() {
@@ -485,12 +473,12 @@ export default {
         this.products = itemsResponse.data.items.map(item => ({
           ...item,
           available_stock: item.available_stock !== undefined ? item.available_stock : Math.floor(Math.random() * 50) + 1,
-          purchase_rate: item.purchase_rate !== undefined ? item.purchase_rate : (Math.floor(Math.random() * 200) + 10) // Добавил мок purchase_rate
+          purchase_rate: item.purchase_rate !== undefined ? item.purchase_rate : (Math.floor(Math.random() * 200) + 10)
         }));
 
       } catch (err) {
-        this.error = 'Failed to load data: ' + (err.response?.data?.message || err.message);
-        console.error('Error loading data:', err);
+        this.error = 'Ошибка загрузки данных: ' + (err.response?.data?.message || err.message);
+        console.error('Ошибка загрузки данных:', err);
       } finally {
         this.loading = false;
       }
@@ -499,16 +487,14 @@ export default {
       this.error = null;
       try {
         const response = await apiClient.get('/zoho/vendors');
-        // !!! ИЗМЕНЕНИЕ: ZohoVendorService теперь возвращает 'vendors' с contact_id и contact_name
         this.allVendors = response.data.vendors;
-        console.log('Successfully fetched vendors:', this.allVendors);
+        console.log('Поставщики успешно загружены:', this.allVendors);
       } catch (error) {
-        console.error('Error fetching all vendors:', error);
-        this.error = 'Failed to load vendors: ' + (error.response?.data?.message || error.message);
+        console.error('Ошибка загрузки поставщиков:', error);
+        this.error = 'Ошибка загрузки поставщиков: ' + (error.response?.data?.message || error.message);
       }
     },
     addLineItem() {
-      // !!! ИЗМЕНЕНИЕ: Количество по умолчанию 0
       this.form.line_items.push({
         item_id: '',
         quantity: 0,
@@ -531,43 +517,37 @@ export default {
         currentItem.rate = selectedProduct.rate || 0;
         currentItem.available_stock = selectedProduct.available_stock !== undefined ? selectedProduct.available_stock : 0;
 
-        // Если товар стал дефицитным
         const deficitQty = Math.max(0, currentItem.quantity - (currentItem.available_stock || 0));
 
         if (deficitQty > 0) {
-          // Инициализируем только если не задано или задано 0 (для quantity_to_order)
           if (currentItem.quantity_to_order === undefined || currentItem.quantity_to_order === null || currentItem.quantity_to_order === 0) {
             currentItem.quantity_to_order = deficitQty;
           }
           if (currentItem.selected_vendor_id === undefined || currentItem.selected_vendor_id === null) {
-            currentItem.selected_vendor_id = ''; // Устанавливаем пустую строку для выбора по умолчанию
+            currentItem.selected_vendor_id = '';
           }
-          // !!! ИЗМЕНЕНИЕ: Устанавливаем purchase_rate только если не задано или задано 0
           if (currentItem.purchase_rate === undefined || currentItem.purchase_rate === null || currentItem.purchase_rate === 0) {
             currentItem.purchase_rate = selectedProduct.purchase_rate || 0;
           }
         } else {
-          // Если дефицита нет, сбрасываем PO-поля
           currentItem.quantity_to_order = undefined;
           currentItem.selected_vendor_id = undefined;
           currentItem.purchase_rate = undefined;
         }
 
       } else {
-        // Если товар не выбран, сбрасываем все связанные поля
         currentItem.available_stock = 0;
-        currentItem.rate = 0; // Сбросить rate при невыбранном товаре
-        currentItem.quantity = 0; // !!! ИЗМЕНЕНИЕ: Сбросить количество при невыбранном товаре
+        currentItem.rate = 0;
+        currentItem.quantity = 0;
         currentItem.quantity_to_order = undefined;
         currentItem.selected_vendor_id = undefined;
         currentItem.purchase_rate = undefined;
       }
     },
     showNewContactModal() {
-      // Сбрасываем форму модального окна при открытии
       this.newContact = {
         contact_name: '',
-        contact_type: 'customer', // По умолчанию 'customer'
+        contact_type: 'customer',
         company_name: '',
         email: '',
         phone: '',
@@ -580,8 +560,8 @@ export default {
           phone: ''
         }
       };
-      this.submitError = null; // Очищаем ошибки при открытии
-      this.successMessage = null; // Очищаем сообщения об успехе
+      this.submitError = null;
+      this.successMessage = null;
       this.newContactModalInstance.show();
     },
     async createNewContact() {
@@ -594,16 +574,16 @@ export default {
         this.successMessage = 'Contact "' + createdContact.contact_name + '" successfully created!';
 
         if (this.newContact.contact_type === 'customer') {
-          await this.fetchInitialData(); // Обновляет this.contacts для dropdown клиентов
-          this.form.customer_id = createdContact.contact_id; // Выбираем только что созданного клиента
+          await this.fetchInitialData();
+          this.form.customer_id = createdContact.contact_id;
           this.updateSelectedContactInfo();
         } else if (this.newContact.contact_type === 'vendor') {
           await this.fetchAllVendors();
         }
 
       } catch (err) {
-        this.submitError = 'Error creating new contact: ' + (err.response?.data?.message || err.message);
-        console.error('Error creating contact:', err.response?.data || err);
+        this.submitError = 'Ошибка создания контакта: ' + (err.response?.data?.message || err.message);
+        console.error('Ошибка создания контакта:', err.response?.data || err);
       } finally {
         this.creatingNewContact = false;
       }
@@ -616,7 +596,7 @@ export default {
       if (this.hasAnyValidationErrors) {
         if (!this.form.customer_id) {
           this.submitError = 'Пожалуйста, выберите клиента.';
-        } else if (this.form.line_items.filter(item => item.item_id).length === 0) { // Проверка, что хотя бы один товар выбран
+        } else if (this.form.line_items.filter(item => item.item_id).length === 0) {
           this.submitError = 'Заказ на продажу должен содержать хотя бы одну позицию товара.';
         } else if (this.form.line_items.some(item => item.item_id && (item.quantity <= 0 || item.rate < 0))) {
           this.submitError = 'Для выбранных товаров количество должно быть больше нуля, а цена — неотрицательной.';
@@ -624,12 +604,11 @@ export default {
           if (!this.form.create_purchase_orders_for_deficit) {
             this.submitError = 'Есть дефицитные товары. Пожалуйста, либо скорректируйте количество, либо выберите "Создать заказы на закупку для дефицитных товаров".';
           } else {
-            // Дополнительная проверка на неполноценные PO-данные
             const invalidPoItem = this.deficitItems.find(item =>
               !item.selected_vendor_id ||
               (item.quantity_to_order === undefined || item.quantity_to_order <= 0) ||
               (item.purchase_rate === undefined || item.purchase_rate < 0) ||
-              (item.quantity_to_order < invalidPoItem.deficit_needed) // Исправлена опечатка `item.deficit_needed`
+              (item.quantity_to_order < item.deficit_needed)
             );
             if (invalidPoItem) {
               if (!invalidPoItem.selected_vendor_id) {
@@ -675,49 +654,45 @@ export default {
           const groupedPurchaseOrders = {};
 
           this.deficitItems.forEach(item => {
-            // Если у каждого дефицитного товара есть выбранный поставщик и корректные данные для PO
             if (!item.selected_vendor_id || item.quantity_to_order <= 0 || item.purchase_rate < 0) {
-              console.warn(`Item ${item.name} has deficit but missing valid PO details. Skipping for PO generation.`);
-              return; // Пропускаем элемент, если он неполноценен для PO
+              console.warn(`Товар ${item.name} имеет дефицит, но не содержит валидных данных для PO. Пропускаем.`);
+              return;
             }
-            // Создаем структуру PO для данного вендора, если ее еще нет
             if (!groupedPurchaseOrders[item.selected_vendor_id]) {
               groupedPurchaseOrders[item.selected_vendor_id] = {
                 vendor_id: item.selected_vendor_id,
-                date: new Date().toISOString().split('T')[0], // Текущая дата для PO
-                delivery_date: new Date(Date.now() + 14 * 24 * 60 * 60 * 1000).toISOString().split('T')[0], // Пример: +14 дней на доставку
+                date: new Date().toISOString().split('T')[0],
+                delivery_date: new Date(Date.now() + 14 * 24 * 60 * 60 * 1000).toISOString().split('T')[0],
                 line_items: [],
               };
             }
-            // Добавляем позицию товара в PO для этого вендора
             groupedPurchaseOrders[item.selected_vendor_id].line_items.push({
               item_id: item.item_id,
-              quantity: parseFloat(item.quantity_to_order), // Количество, которое нужно заказать (используем 'quantity')
-              rate: parseFloat(item.purchase_rate),         // Закупочная цена (используем 'rate')
+              quantity: parseFloat(item.quantity_to_order),
+              rate: parseFloat(item.purchase_rate),
             });
           });
 
-          // Добавляем сгруппированные PO в payload, если они сформировались
           if (Object.keys(groupedPurchaseOrders).length > 0) {
             payload.purchase_orders_data = Object.values(groupedPurchaseOrders);
           }
         }
 
-        const response = await apiClient.post('/zoho/sales-purchase-orders', payload); // <-- ИЗМЕНЕННЫЙ URL
+        const response = await apiClient.post('/zoho/sales-purchase-orders', payload);
 
         this.successMessage = response.data.message || 'Комбинированный заказ успешно создан!';
-        console.log('Order creation result:', response.data);
+        console.log('Результат создания заказа:', response.data);
 
         this.form = {
           customer_id: '',
-          line_items: [{ item_id: '', quantity: 0, rate: 0, discount_percentage: 0, available_stock: 0, quantity_to_order: undefined, selected_vendor_id: undefined, purchase_rate: undefined }], // !!! ИЗМЕНЕНИЕ: Количество 0
+          line_items: [{ item_id: '', quantity: 0, rate: 0, discount_percentage: 0, available_stock: 0, quantity_to_order: undefined, selected_vendor_id: undefined, purchase_rate: undefined }],
           create_purchase_orders_for_deficit: false,
         };
         this.selectedContact = null;
 
       } catch (err) {
-        this.submitError = 'Error creating order: ' + (err.response?.data?.message || err.message);
-        console.error('Error creating order:', err.response?.data || err);
+        this.submitError = 'Ошибка создания заказа: ' + (err.response?.data?.message || err.message);
+        console.error('Ошибка создания заказа:', err.response?.data || err);
       } finally {
         this.submitting = false;
       }

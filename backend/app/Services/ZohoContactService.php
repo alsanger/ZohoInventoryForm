@@ -54,7 +54,7 @@ class ZohoContactService extends ZohoBaseApiService
 
         $requestData = $contactData;
 
-        Log::debug('Отправка запроса на создание контакта в Zoho API.');
+        Log::debug('Отправка запроса на создание контакта в Zoho API.', ['payload' => $requestData]);
 
         $response = $this->zohoApiPost('/inventory/v1/contacts', $requestData);
 

@@ -2,7 +2,7 @@
 
 namespace App\Services;
 
-use App\Models\ZohoToken;
+use App\Interfaces\ZohoTokenRepositoryInterface;
 use Carbon\Carbon;
 use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Log;
@@ -13,18 +13,17 @@ class ZohoAuthService
     private string $clientSecret;
     private string $redirectUri;
     private string $zohoAccountsDomain;
+    private ZohoTokenRepositoryInterface $tokenRepository;
 
-    public function __construct()
+    public function __construct(ZohoTokenRepositoryInterface $tokenRepository)
     {
         $this->clientId = env('ZOHO_CLIENT_ID');
         $this->clientSecret = env('ZOHO_CLIENT_SECRET');
         $this->redirectUri = env('ZOHO_REDIRECT_URI');
         $this->zohoAccountsDomain = env('ZOHO_ACCOUNTS_DOMAIN', 'https://accounts.zoho.eu');
+        $this->tokenRepository = $tokenRepository;
     }
 
-    /**
-     * Возвращает URL для начала авторизации Zoho OAuth 2.0.
-     */
     public function getAuthUrl(): string
     {
         return $this->zohoAccountsDomain . '/oauth/v2/auth?' . http_build_query([
@@ -37,9 +36,6 @@ class ZohoAuthService
             ]);
     }
 
-    /**
-     * Обрабатывает callback от Zoho OAuth.
-     */
     public function processCallback(string $code, string $location = 'eu'): array
     {
         try {
@@ -62,13 +58,13 @@ class ZohoAuthService
                 return ['success' => false, 'message' => 'Ошибка авторизации: ' . $errorMessage];
             }
 
-            // Удаляем старые токены и сохраняем новые.
-            ZohoToken::truncate();
-            ZohoToken::create([
-                'access_token' => $data['access_token'],
-                'refresh_token' => $data['refresh_token'],
-                'expires_at' => Carbon::now()->addSeconds($data['expires_in']),
-            ]);
+            // Используем репозиторий для сохранения токена
+            $this->tokenRepository->clearTokens();
+            $this->tokenRepository->saveToken(
+                $data['access_token'],
+                $data['refresh_token'],
+                Carbon::now()->addSeconds($data['expires_in'])
+            );
 
             Log::info('Zoho Inventory authorization successful.');
             return ['success' => true, 'message' => 'Авторизация в Zoho Inventory прошла успешно!'];
@@ -78,22 +74,18 @@ class ZohoAuthService
         }
     }
 
-    /**
-     * Получает актуальный access_token.
-     */
     public function getToken(): ?string
     {
-        $token = ZohoToken::first();
+        $token = $this->tokenRepository->getToken();
 
         if (!$token) {
             Log::warning('Токен Zoho не найден. Требуется авторизация.');
             return null;
         }
 
-        // Если токен истек или скоро истечет (в пределах 30 секунд), обновляем его.
-        if ($token->expires_at->lt(Carbon::now()->addSeconds(30))) {
+        if (Carbon::parse($token['expires_at'])->lt(Carbon::now()->addSeconds(30))) {
             Log::info('Access токен Zoho истек или скоро истечет, попытка обновления.');
-            $newAccessToken = $this->refreshToken($token);
+            $newAccessToken = $this->refreshToken($token['refresh_token']);
             if ($newAccessToken) {
                 Log::info('Access токен Zoho успешно обновлен.');
             } else {
@@ -102,20 +94,17 @@ class ZohoAuthService
             return $newAccessToken;
         }
 
-        return $token->access_token;
+        return $token['access_token'];
     }
 
-    /**
-     * Обновляет access_token Zoho с использованием refresh_token.
-     */
-    protected function refreshToken(ZohoToken $token): ?string
+    protected function refreshToken(string $refreshToken): ?string
     {
         try {
             $params = [
                 'grant_type' => 'refresh_token',
                 'client_id' => $this->clientId,
                 'client_secret' => $this->clientSecret,
-                'refresh_token' => $token->refresh_token,
+                'refresh_token' => $refreshToken,
             ];
 
             $response = Http::asForm()->post($this->zohoAccountsDomain . '/oauth/v2/token', $params);
@@ -126,11 +115,13 @@ class ZohoAuthService
                 return null;
             }
 
-            $token->access_token = $data['access_token'];
-            $token->expires_at = Carbon::now()->addSeconds($data['expires_in']);
-            $token->save();
+            // Обновляем токен через репозиторий
+            $this->tokenRepository->updateToken(
+                $data['access_token'],
+                Carbon::now()->addSeconds($data['expires_in'])
+            );
 
-            return $token->access_token;
+            return $data['access_token'];
         } catch (\Exception $e) {
             Log::error('Исключение при обновлении токена Zoho', ['error' => $e->getMessage()]);
             return null;

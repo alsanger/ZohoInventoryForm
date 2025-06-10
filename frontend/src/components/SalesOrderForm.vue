@@ -57,7 +57,7 @@
               </select>
             </td>
             <td class="ordered-col">
-              <div class="d-flex flex-column align-items-center justify-content-start h-100">
+
                 <input
                   type="number"
                   v-model.number="item.quantity"
@@ -68,7 +68,7 @@
                 <small v-if="item.item_id && item.available_stock !== undefined" :class="{ 'text-danger': item.quantity > (item.available_stock || 0) && (!form.create_purchase_orders_for_deficit || !isDeficitFullyCoveredByPOForItem(item)) }" class="pt-1">
                   Available: {{ item.available_stock }}
                 </small>
-              </div>
+
             </td>
             <td class="discount-col">
               <input type="number" v-model.number="item.discount_percentage" min="0" max="100" step="0.01" class="form-control form-control-sm text-center">
